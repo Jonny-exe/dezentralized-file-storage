@@ -2,32 +2,49 @@
 #include<stdio.h>
 #include<dirent.h>
 #include<stdlib.h>
+#include<string.h>
 
-void read_folder_files();
+void readFolderFiles();
 int main() {
-  printf("%s", "asdfasdf");
-  read_folder_files(".");
+  char files[10 * sizeof(char)][100];
+  readFolderFiles(".", files);
   return 0;
 }
 
-void read_folder_files(char dirname[10]) {
+void readFolderFiles(char *dirname, char **files) {
+  const int MAX_FILENAME_LENGTH = 10;
   DIR *folder;
   int idx = 0;
   struct dirent *entry;
-  char *files[10];
   
   folder = opendir(dirname);
   if (folder == NULL) {
-    puts("No dir");
+    puts("No dir\n");
   } else {
     while ((entry=readdir(folder))) {
-      files[idx] = entry->d_name;
-      idx++;
-    }
-  }
+      char *name = entry->d_name;
+      if (name[0] == '.') {
+        continue;
+      }
+      char *fullName;
+      fullName = malloc(strlen(dirname) + strlen(name) + sizeof(char));
+      strcpy(fullName, dirname);
+      strcat(fullName, "/");
+      strcat(fullName, name);
 
-  for (idx = 0; idx < 10; idx++) {
-    printf("File %d: %s\n", idx, files[idx]);
+      if (entry->d_type == 4) {
+        char *filesInsideFolder[MAX_FILENAME_LENGTH * sizeof(char)];
+        readFolderFiles(fullName, filesInsideFolder);
+        for (int i = 0; i < sizeof(filesInsideFolder) / MAX_FILENAME_LENGTH / sizeof(char);  i++) {
+          files[idx] = filesInsideFolder[i];
+          idx++;
+        }
+      } else {
+        files[idx] = fullName;
+        idx++;
+      }
+      free(fullName);
+    }
   }
 }
 
