@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <netinet/in.h>
 
-// This server mostly from: https://ops.tips/blog/a-tcp-server-in-c/#the-overview
+// This server partly from: https://ops.tips/blog/a-tcp-server-in-c/#the-overview
 
 typedef struct server {
   int listen_fd;
@@ -12,10 +12,15 @@ typedef struct server {
 
 int server_accept(server_t *server);
 int server_listen(server_t *server);
+int server_bind(server_t *server, int PORT);
+int server_connect(server_t *server, int PORT);
+int server_write(server_t *server);
+int server_read(server_t *server, char *buff);
 
 int main() {
   int err = 0;
   int PORT = 8080;
+  int type = 0;
   server_t server = {0};
 
   err = (server.listen_fd = socket(AF_INET, SOCK_STREAM, 0));
@@ -25,37 +30,43 @@ int main() {
     return err;
   }
 
-  struct sockaddr_in server_addr = {0};
-  server_addr.sin_family = AF_INET;
-  server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-  server_addr.sin_port = htons(PORT);
-
-
-  err = bind(server.listen_fd, (struct sockaddr *)&server_addr,
-             sizeof(server_addr));
-  if (err == -1) {
-    perror("bind");
-    printf("Failed to bind socket to address\n");
-    return err;
-  } else {
-    puts("Bind-ed\n");
-  }
-
-  err = server_listen(&server);
-  if (err) {
-    printf("Failed to listen on address 0.0.0.0:%d\n", PORT);
-    return err;
-  } else {
-    puts("Server listening\n");
-  }
-
-  while (1) { // Check if this is working with lsof -i:PORT
-    err = server_accept(&server);
-    if (err) {
-      printf("Failed accepting connection\n");
+  if (type == 1) {
+    err = server_bind(&server, PORT);
+    if (err == -1) {
+      perror("bind");
+      printf("Failed to bind socket to address\n");
       return err;
+    } else {
+      puts("Bind-ed\n");
     }
+
+    err = server_listen(&server);
+    if (err) {
+      printf("Failed to listen on address 0.0.0.0:%d\n", PORT);
+      return err;
+    } else {
+      puts("Server listening\n");
+    }
+
+    while (1) { // Check if this is working with lsof -i:PORT
+      err = server_accept(&server);
+      if (err) {
+        printf("Failed accepting connection\n");
+        return err;
+      }
+    }
+  } else {
+    err = server_connect(&server, PORT);
+    if (err == -1) {
+      perror("connect");
+      printf("Failed to connect to socket\n");
+      return err;
+    } else {
+      printf("Connected to socket\n");
+    }
+    //TODO: here goes server_write
   }
+    
   return 0;
 }
 
@@ -97,5 +108,41 @@ int server_listen(server_t *server) {
     printf("Failed to put socket in passive mode\n");
     return err;
   }
+  return err;
+}
+
+int server_bind(server_t *server, int PORT) {
+  int err;
+  struct sockaddr_in server_addr = {0};
+  server_addr.sin_family = AF_INET;
+  server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+  server_addr.sin_port = htons(PORT);
+
+  err = bind(server->listen_fd, (struct sockaddr *)&server_addr,
+             sizeof(server_addr));
+  return err;
+}
+
+int server_connect(server_t *server, int PORT) {
+  int err;
+  struct sockaddr_in server_addr = {0};
+  server_addr.sin_family = AF_INET;
+  server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+  server_addr.sin_port = htons(PORT);
+  err = connect(server->listen_fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
+  return err;
+}
+
+int server_write(server_t *server) {
+  int err;
+  char buff[80] = "Hello";
+  bzero(buff, sizeof(buff));
+  err = write(server->listen_fd, buff, sizeof(buff));
+  return err;
+}
+
+int server_read(server_t *server, char *buff) {
+  int err;
+  err = read(server->listen_fd, buff, sizeof(buff));
   return err;
 }
