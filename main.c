@@ -8,7 +8,9 @@
 
 #define MAX_FILE_SIZE 4294967296 // 4 gb
 
-// gcc -Wall main.c -lcrypto -lm -o main
+// Running gdb: gcc -Wall main.c -lcrypto -lm -o main
+// Using it:    gcc -Wall -g main.c -lcrypto -lm -o main
+//
 
 void readFolderFiles();
 int compressFile();
@@ -17,7 +19,7 @@ void splitFile2Bytes();
 int sendFile();
 int tests();
 int getFileSize();
-char *hashFile();
+unsigned char *hashFile();
 
 int main() {
   tests();
@@ -79,11 +81,9 @@ void splitFile2Bytes(FILE *file, int size, int *bytes[256 / sizeof(int)]) {
     exit(1);
   }
 
-  /*int currentBytes[256 / (int)sizeof(int)];*/
   int idx, c, max;
   int bytesIdx = 0;
-  /*int pieces = 8;*/
-  int pieces = 8; //TODO make this dynamic
+  int pieces = 16; //TODO make this dynamic
   int myBytes[256 / sizeof(int)][pieces];
 
   for (idx = 0, max = 0; max < size; idx++, max++) {
@@ -96,13 +96,16 @@ void splitFile2Bytes(FILE *file, int size, int *bytes[256 / sizeof(int)]) {
   }
 
   if (idx != 0) {
-    for (idx = idx; idx < 256 / sizeof(int); idx++)
-      myBytes[bytesIdx][idx] = c;
+    for (idx = idx; idx < 256 / sizeof(int); idx++) {
+      myBytes[bytesIdx][idx] = 0;
+      printf("%d, %d, %d\n",myBytes[bytesIdx][idx], idx, bytesIdx);
+    }
   }
-  for (int i = 0; i < pieces; i++) 
+  for (int i = 0; i < bytesIdx + 1; i++)
     bytes[i] = myBytes[i];
 
-  puts(""); //TODO: Why the heck is this important. Code doesn't work without this
+  printf("Last byteIdx: %d\n", bytesIdx);
+  /*puts(""); //TODO: Why the heck is this important. Code doesn't work without this*/
 }
 
 int getFileSize(FILE *file) {
@@ -122,11 +125,10 @@ int getFileSize(FILE *file) {
   return size;
 }
 
-char *hashFile(int *bytes, FILE *file, int bytesSize) {
+unsigned char *hashFile(int *bytes, int bytesSize) {
   // TODO
   int i;
   unsigned char hash[SHA_DIGEST_LENGTH];
-  unsigned char data[1024];
   SHA_CTX mdContent;
   SHA1_Init(&mdContent);
 
@@ -141,7 +143,7 @@ char *hashFile(int *bytes, FILE *file, int bytesSize) {
   SHA1_Final(hash, &mdContent);
   for (i = 0; i < SHA_DIGEST_LENGTH; i++) printf("%02x", hash[i]);
   puts("\n");
-  return "0";
+  return hash;
 }
 
 int encryptFile() {
@@ -159,10 +161,12 @@ int tests() {
   FILE *file = fopen(filename, "rb");
   int size = getFileSize(file);
   int *bytes[256 / sizeof(int)];
+  printf("Size of bytes: %d\n", (int) sizeof(bytes));
+  printf("Size of file: %d\n", size);
   splitFile2Bytes(file, size, bytes);
-  printf("Byte: %d\n", bytes[0][0]);
-  for (int i = 0; i < sizeof(bytes) / sizeof(int) / (256 / sizeof(int)); i++) {
-    hashFile(bytes[i], file, 64);
+  printf("Size of bytes: %d\n", (int) sizeof(bytes));
+  for (int i = 0; i < 5; i++) {
+    hashFile(bytes[i], 64);
   }
   puts("HELLO");
   return 0;
