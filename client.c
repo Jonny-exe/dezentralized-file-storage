@@ -9,17 +9,17 @@ int main() {
   err = (server.listen_fd = socket(AF_INET, SOCK_STREAM, 0));
   if (err == -1) {
     perror("socket");
-    printf("Failed to create socket endpoint\n");
+    printf("client: Failed to create socket endpoint\n");
     return err;
   }
 
   err = server_connect(&server, PORT);
   if (err) {
     perror("connect");
-    printf("Failed to connect to socket\n");
+    printf("client: Failed to connect to socket\n");
     return err;
   } else {
-    printf("Connected to socket\n");
+    printf("client: Connected to socket\n");
   }
 
   char message[20] = {0};
@@ -28,16 +28,16 @@ int main() {
   err = server_write(&server, message1, sizeof(message));
   if (err == -1) {
     perror("write");
-    printf("Failed writting message\n");
+    printf("client: Failed writting message\n");
   }
 
   err = server_read(&server, message, sizeof(message));
   if (err == -1) {
     perror("read");
-    printf("Failed reading message\n");
+    printf("client: Failed reading message\n");
     return err;
   }
-  printf("Message: %s\n", message);
+  printf("client: Message: %s\n", message);
 
   return 0;
 }
