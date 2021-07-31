@@ -16,28 +16,29 @@ int remove_table(char *key);
 int init_table();
 int read_table(table_t *table, int *lines);
 int write_table(table_t *table, int lines);
-void format_time(char *output);
+void format_date(char *output);
 
 int main() {
-  printf("Main init\n");
   int err;
   err = init_table();
   if (err == -1) {
     printf("Error initializing file\n");
   }
 
-  /*err = insert_table("key", "value");*/
-  /*if (err == -1) {*/
-    /*printf("Error inserting key\n");*/
-  /*}*/
+  err = insert_table("key", "value");
+  if (err == -1) {
+    printf("Error inserting key\n");
+  }
 
   table_t tables[80];
   int lines = 0;
-  read_table(tables, &lines);
-  /*for (int i = 0; i < lines; i++) {*/
-    /*printf("%s, %s\n", tables[i].ip, tables[i].hash);*/
-  /*}*/
-  write_table(tables, lines);
+  err = read_table(tables, &lines);
+  if (err == -1)
+    printf("Error reading table\n");
+
+  err = write_table(tables, lines);
+  if (err == -1) 
+    printf("Error writing table\n");
   return 0;
 }
 
@@ -63,7 +64,7 @@ int init_table() {
       return -1;
     }
     char date[20];
-    format_time(date);
+    format_date(date);
     fprintf(file, "%s", date);
     fclose(file);
   }
@@ -122,7 +123,7 @@ int write_table(table_t *tables, int lines) {
   int err;
   FILE *file = fopen(FILENAME, "w+");
   char date[20];
-  format_time(date);
+  format_date(date);
 
   fprintf(file, "%s\n", date);
   for (int i = 0; i < lines; i++) {
@@ -142,7 +143,7 @@ int insert_table(char *new_key, char *new_value) {
   return err;
 }
 
-void format_time(char *output) {
+void format_date(char *output) {
   time_t rawtime;
   struct tm *timeinfo;
 
