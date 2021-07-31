@@ -15,7 +15,7 @@ int insert_table(char *new_key, char *new_value);
 int remove_table(char *key);
 int init_table();
 int read_table(table_t *table, int *lines);
-int write_table(table_t *table);
+int write_table(table_t *table, int lines);
 void format_time(char *output);
 
 int main() {
@@ -34,6 +34,10 @@ int main() {
   table_t tables[80];
   int lines = 0;
   read_table(tables, &lines);
+  /*for (int i = 0; i < lines; i++) {*/
+    /*printf("%s, %s\n", tables[i].ip, tables[i].hash);*/
+  /*}*/
+  write_table(tables, lines);
   return 0;
 }
 
@@ -68,7 +72,7 @@ int init_table() {
 
 int read_table(table_t *tables, int *lines ) {
   char ch;
-  int table_idx = 0;
+  int table_idx = -1;
   int separator_idx = 0;
   int idx = 0;
   int type = 0; // 0 == value, 1 == key
@@ -78,17 +82,17 @@ int read_table(table_t *tables, int *lines ) {
 
   while((ch = fgetc(file)) != EOF) {
     if (ch == '\n') {
-      table_idx++;
-      if (table_idx > 1) {
+      if (table_idx > -1) {
         strcpy(tables[table_idx].hash, key);
         strcpy(tables[table_idx].ip, value);
-        memset(value, 0, sizeof(value));
-        memset(key, 0, sizeof(key));
         type = !type;
         idx = 0;
       }
+      memset(value, 0, sizeof(value));
+      memset(key, 0, sizeof(key));
+      table_idx++;
       continue;
-    } else if (table_idx > 0) {
+    } else if (table_idx > -1) {
       if (ch == SEPARATOR[separator_idx]) {
         separator_idx++;
         if (separator_idx == 2) {
@@ -101,13 +105,32 @@ int read_table(table_t *tables, int *lines ) {
           key[idx] = ch;
         } else {
           value[idx] = ch;
-      }
+        }
         idx++;
       }
     }
   }
   *lines = table_idx;
   return 0;
+}
+
+int write_table(table_t *tables, int lines) {
+  if (lines == 0) {
+    return -1;
+  }
+
+  int err;
+  FILE *file = fopen(FILENAME, "w+");
+  char date[20];
+  format_time(date);
+
+  fprintf(file, "%s\n", date);
+  for (int i = 0; i < lines; i++) {
+    fprintf(file, "%s||%s\n", tables[i].hash, tables[i].ip);
+  }
+
+  err = fclose(file);
+  return err;
 }
 
 int insert_table(char *new_key, char *new_value) {
@@ -126,7 +149,7 @@ void format_time(char *output) {
   time(&rawtime);
   timeinfo = localtime(&rawtime);
 
-  sprintf(output, "[%d-%d-%d/%d]\n", timeinfo->tm_mday, timeinfo->tm_mon + 1,
+  sprintf(output, "[%d-%d-%d/%d]", timeinfo->tm_mday, timeinfo->tm_mon + 1,
           timeinfo->tm_year + 1900, timeinfo->tm_hour);
 }
 
