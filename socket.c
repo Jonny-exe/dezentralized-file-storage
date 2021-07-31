@@ -86,3 +86,9 @@ int server_read(server_t *server, char *buff, int size) {
   err = read(server->listen_fd, buff, size);
   return err;
 }
+
+int server_close(server_t *server) {
+  int err;
+  err = close(server->listen_fd);
+  return err;
+}
