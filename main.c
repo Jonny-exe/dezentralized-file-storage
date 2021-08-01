@@ -13,17 +13,17 @@
 // Using it:    gcc -Wall -g main.c -lcrypto -lm -o main
 //
 
-void readFolderFiles();
-int compressFile();
-int cryptFile();
-void splitFile2Bytes();
+void readFolderFiles(char *dirname, char **files);
+int compressFile(char *filename);
+void splitFile2Bytes(FILE *file, int size, int *bytes[256 / sizeof(int)]);
+int cryptFile(char *key, char *filename, char *type);
+int getFileSize(FILE *file);
 int tests();
-int getFileSize();
 unsigned char *hashFile();
 
 int main() {
   /*tests();*/
-  int err = cryptFile("a random key", "./test/testfiles", "decrypt");
+  int err = cryptFile("a random key", "./test/testfiles", "encrypt");
   cryptFile("a random key", "./test/testfiles", "decrypt");
   if (err == -1) {
     puts("Error");
