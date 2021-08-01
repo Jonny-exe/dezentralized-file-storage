@@ -4,18 +4,19 @@
 #include <string.h>
 #define SEPARATOR "||"
 #define FILENAME "local_hash_table"
+#define MAX_SIZE 200
 
-typedef struct table {
+typedef struct row {
   char hash[80];
   char ip[80];
-} table_t;
+} row_t;
 
-int update_table(FILE *file, char *new_key, char *new_value);
-int insert_table(char *new_key, char *new_value);
-int remove_table(char *key);
 int init_table();
-int read_table(table_t *table, int *lines);
-int write_table(table_t *table, int lines);
+int update_row(row_t *table, char *key, char *new_value, int lines);
+int insert_row(row_t *table, char *new_key, char *new_value, int *lines);
+int remove_row(row_t *table, char *key, int lines);
+int read_table(row_t *table, int *lines);
+int write_table(row_t *table, int lines);
 void format_date(char *output);
 
 int main() {
@@ -25,34 +26,27 @@ int main() {
     printf("Error initializing file\n");
   }
 
-  err = insert_table("key", "value");
-  if (err == -1) {
-    printf("Error inserting key\n");
-  }
-
-  table_t tables[80];
-  int lines = 0;
-  err = read_table(tables, &lines);
+  row_t table[MAX_SIZE];
+  int lines;
+  err = read_table(table, &lines);
   if (err == -1)
     printf("Error reading table\n");
 
-  err = write_table(tables, lines);
+  err = insert_row(table, "test1", "test1", &lines);
+  if (err == -1)
+    printf("Error inserting key\n");
+
+  err = remove_row(table, "key", lines);
+  if (err == -1)
+    printf("Error removing key\n");
+
+  err = update_row(table, "test1", "test2", lines);
+  if (err == -1)
+    printf("Error updating key\n");
+
+  err = write_table(table, lines);
   if (err == -1) 
     printf("Error writing table\n");
-  return 0;
-}
-
-int remove_table(char *key) {
-  char ch;
-  table_t lines[10];
-  int idx = 0;
-  FILE *file = fopen(FILENAME, "r");
-  while((ch = fgetc(file)) != EOF) {
-    if (ch == '\n') {
-      
-    }
-  }
-
   return 0;
 }
 
@@ -71,12 +65,12 @@ int init_table() {
   return 0;
 }
 
-int read_table(table_t *tables, int *lines ) {
+int read_table(row_t *table, int *lines ) {
   char ch;
   int table_idx = -1;
   int separator_idx = 0;
   int idx = 0;
-  int type = 0; // 0 == value, 1 == key
+  int type = 1; // 0 == value, 1 == key
   char value[80];
   char key[80];
   FILE *file = fopen(FILENAME, "r");
@@ -84,8 +78,8 @@ int read_table(table_t *tables, int *lines ) {
   while((ch = fgetc(file)) != EOF) {
     if (ch == '\n') {
       if (table_idx > -1) {
-        strcpy(tables[table_idx].hash, key);
-        strcpy(tables[table_idx].ip, value);
+        strcpy(table[table_idx].hash, key);
+        strcpy(table[table_idx].ip, value);
         type = !type;
         idx = 0;
       }
@@ -102,7 +96,7 @@ int read_table(table_t *tables, int *lines ) {
         }
       } else {
         separator_idx = 0;
-        if (type) {
+        if (type == 1) {
           key[idx] = ch;
         } else {
           value[idx] = ch;
@@ -115,7 +109,7 @@ int read_table(table_t *tables, int *lines ) {
   return 0;
 }
 
-int write_table(table_t *tables, int lines) {
+int write_table(row_t *table, int lines) {
   if (lines == 0) {
     return -1;
   }
@@ -127,19 +121,61 @@ int write_table(table_t *tables, int lines) {
 
   fprintf(file, "%s\n", date);
   for (int i = 0; i < lines; i++) {
-    fprintf(file, "%s||%s\n", tables[i].hash, tables[i].ip);
+    if (strcmp(table[i].hash, "") == 0 && strcmp(table[i].ip, "") == 0)
+      continue;
+    fprintf(file, "%s||%s\n", table[i].hash, table[i].ip);
   }
 
   err = fclose(file);
   return err;
 }
 
-int insert_table(char *new_key, char *new_value) {
+int hash_exists(row_t *table, char *hash, int lines) {
+  for (int i = 0; i < lines; i++) {
+    if (strcmp(table[i].hash, hash) == 0) {
+      strcpy(table[i].ip, hash);
+      return i;
+    }
+  }
+  return -1;
+}
+
+int insert_row(row_t *table, char *new_key, char *new_value, int *lines) {
   int err;
-  FILE *file = NULL;
-  file = fopen(FILENAME, "a");
-  fprintf(file, "%s%s%s\n", new_key, SEPARATOR, new_value);
-  err = fclose(file);
+  int line;
+
+  err = -1;
+  if (hash_exists(table, new_key, *lines) == -1) {
+    strcpy(table[*lines].hash, new_key);
+    strcpy(table[*lines].ip, new_value);
+    (*lines)++;
+    err = 0;
+  }
+  return err;
+}
+
+int update_row(row_t *table, char *key, char *new_value, int lines) {
+  int line;
+
+  line = hash_exists(table, key, lines);
+  if (line == -1) {
+    return -1;
+  }
+
+  strcpy(table[line].ip, new_value);
+  return 0;
+}
+
+int remove_row(row_t *table, char *key, int lines) {
+  int err = -1;
+  for (int i = 0; i < lines; i++) {
+    if (strcmp(key, table[i].hash) == 0) {
+      strcpy(table[i].ip, "");
+      strcpy(table[i].hash, "");
+      err = 0;
+      break;
+    }
+  }
   return err;
 }
 
