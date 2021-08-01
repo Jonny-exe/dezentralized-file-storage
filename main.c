@@ -1,6 +1,7 @@
 #include <dirent.h>
 #include <math.h>
 #include <openssl/sha.h>
+#include <openssl/aes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,15 +15,20 @@
 
 void readFolderFiles();
 int compressFile();
-int encryptFile();
+int cryptFile();
 void splitFile2Bytes();
-int sendFile();
 int tests();
 int getFileSize();
 unsigned char *hashFile();
 
 int main() {
-  tests();
+  /*tests();*/
+  int err = cryptFile("a random key", "./test/testfiles", "decrypt");
+  cryptFile("a random key", "./test/testfiles", "decrypt");
+  if (err == -1) {
+    puts("Error");
+  }
+
   return 0;
 }
 
@@ -146,14 +152,15 @@ unsigned char *hashFile(int *bytes, int bytesSize) {
   return hash;
 }
 
-int encryptFile() {
-  // TODO
-  return 0;
-}
+int cryptFile(char *key, char *filename, char *type) {
+  if (strcmp(type, "encrypt") != 0 && strcmp(type, "decrypt") != 0)
+    return -1;
 
-int sendFile(int *file) {
-  // TODO
-  return 0;
+  char command[100];
+  int result;
+  sprintf(command, "ccrypt --%s --key '%s' '%s'", type, key, filename);
+  result = system(command);
+  return result;
 }
 
 int tests() {
@@ -168,6 +175,5 @@ int tests() {
   for (int i = 0; i < 5; i++) {
     hashFile(bytes[i], 64);
   }
-  puts("HELLO");
   return 0;
 }
