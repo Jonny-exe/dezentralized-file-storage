@@ -5,8 +5,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/inotify.h>
+
 #define MAX_FILENAME 80
 #define MAX_FILE_SIZE 4294967296 // 4 gb
+#define EVENT_SIZE  (sizeof(struct inotify_event))
+#define BUF_LEN     (1024 * (EVENT_SIZE + 16))
+
+
 
 // Running gdb: gcc -Wall -g main.c -lcrypto -lm -o main
 // Using it:    gcc -Wall main.c -lcrypto -lm -o main
@@ -16,6 +22,7 @@ int compressFile(char *filename);
 void splitFile2Bytes(FILE *file, int size, int *bytes[256 / sizeof(int)]);
 int cryptFile(char *key, char *filename, char *type);
 int getFileSize(FILE *file);
+int listenFolder(char *dirname);
 int tests();
 unsigned char *hashFile();
 
@@ -163,4 +170,48 @@ int tests() {
     hashFile(bytes[i], 64);
   }
   return 0;
+}
+
+int listenFolder(char *dirname) {
+	int length, i;
+	int fd;
+	int wd;
+
+	while (1) {
+		char buffer[BUF_LEN];
+		i = 0;
+		fd = inotify_init();
+
+		if (fd < 0) {
+			perror("inotify_init");
+		}
+		wd = inotify_add_watch(fd, dirname,
+				IN_MODIFY | IN_CREATE | IN_DELETE);
+		printf("Length: %d\n", fd);
+		length = read(fd, buffer, BUF_LEN);
+
+		if (length < 0) {
+			perror("read");
+		}
+
+		while (i < length) {
+			struct inotify_event *event =
+				(struct inotify_event *) &buffer[i];
+			if (event->len) {
+				if (event->mask & IN_CREATE) {
+					printf("The file %s was created.\n", event->name);
+				} else if (event->mask & IN_DELETE) {
+					printf("The file %s was deleted.\n", event->name);
+				} else if (event->mask & IN_MODIFY) {
+					printf("The file %s was modified.\n", event->name);
+				}
+			}
+			i += EVENT_SIZE + event->len;
+		}
+
+		(void) inotify_rm_watch(fd, wd);
+		(void) close(fd);
+	}
+
+	return 0;
 }
