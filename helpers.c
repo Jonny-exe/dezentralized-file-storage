@@ -6,12 +6,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <openssl/sha.h>
-
+#define MAX_FILENAME 80
 #define MAX_FILE_SIZE 4294967296 // 4 gb
 
-// Running gdb: gcc -Wall main.c -lcrypto -lm -o main
-// Using it:    gcc -Wall -g main.c -lcrypto -lm -o main
-//
+// Running gdb: gcc -Wall -g main.c -lcrypto -lm -o main
+// Using it:    gcc -Wall main.c -lcrypto -lm -o main
 
 void readFolderFiles(char *dirname, char **files);
 int compressFile(char *filename);
@@ -70,16 +69,7 @@ void readFolderFiles(char *dirname, char **files) {
   }
 }
 
-int compressFile(char *filename) {
-  char command[30] = "gzip ";
-  int result;
-  strcat(command, filename);
-  result = system(command);
-  return result;
-}
-
 void splitFile2Bytes(FILE *file, int size, int *bytes[256 / sizeof(int)]) {
-/*int **splitFile2Bytes(FILE *file, int size, int *bytes[256]) {*/
   // TODO: fix this with huge files:
   // https://stackoverflow.com/questions/41859547/how-to-read-a-large-file-with-function-read-in-c?noredirect=1&lq=1
   if (file == NULL) {
@@ -163,8 +153,24 @@ int cryptFile(char *key, char *filename, char *type) {
   return result;
 }
 
+int compressFile(char *filename) {
+  char command[MAX_FILENAME] = "gzip ";
+  int result;
+  strcat(command, filename);
+  result = system(command);
+  return result;
+}
+
+int createFile(char *filename) {
+  char command[MAX_FILENAME] = "touch ";
+  int err;
+  strcat(command, filename);
+  err = system(command);
+  return err;
+}
+
 int tests() {
-  char filename[30] = "./test/testfiles";
+  char filename[MAX_FILENAME] = "./test/testfiles";
   FILE *file = fopen(filename, "rb");
   int size = getFileSize(file);
   int *bytes[256 / sizeof(int)];
