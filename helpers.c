@@ -1,18 +1,17 @@
 #include <dirent.h>
 #include <math.h>
-#include <openssl/sha.h>
 #include <openssl/aes.h>
+#include <openssl/sha.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <openssl/sha.h>
 #define MAX_FILENAME 80
 #define MAX_FILE_SIZE 4294967296 // 4 gb
 
 // Running gdb: gcc -Wall -g main.c -lcrypto -lm -o main
 // Using it:    gcc -Wall main.c -lcrypto -lm -o main
 
-void readFolderFiles(char *dirname, char **files);
+void readFolderFiles(char *dirname, char files[100][100], int *index, int *size);
 int compressFile(char *filename);
 void splitFile2Bytes(FILE *file, int size, int *bytes[256 / sizeof(int)]);
 int cryptFile(char *key, char *filename, char *type);
@@ -20,21 +19,21 @@ int getFileSize(FILE *file);
 int tests();
 unsigned char *hashFile();
 
-int main() {
-  /*tests();*/
-  int err = cryptFile("a random key", "./test/testfiles", "encrypt");
-  cryptFile("a random key", "./test/testfiles", "decrypt");
-  if (err == -1) {
-    puts("Error");
-  }
+/*int main() {*/
+/*tests();*/
+/*int err = cryptFile("a random key", "./test/testfiles", "encrypt");*/
+/*cryptFile("a random key", "./test/testfiles", "decrypt");*/
+/*if (err == -1) {*/
+/*puts("Error");*/
+/*}*/
 
-  return 0;
-}
+/*return 0;*/
+/*}*/
 
-void readFolderFiles(char *dirname, char **files) {
+void readFolderFiles(char *dirname, char files[100][100], int *index, int *size) {
   const int MAX_FILENAME_LENGTH = 10;
   DIR *folder;
-  int idx = 0;
+  int idx = *index;
   struct dirent *entry;
 
   folder = opendir(dirname);
@@ -46,27 +45,23 @@ void readFolderFiles(char *dirname, char **files) {
       if (name[0] == '.') {
         continue;
       }
-      char *fullName;
-      fullName = malloc(strlen(dirname) + strlen(name) + sizeof(char));
+      char fullName[strlen(dirname) + strlen(name) + sizeof(char)];
       strcpy(fullName, dirname);
       strcat(fullName, "/");
       strcat(fullName, name);
 
       if (entry->d_type == 4) {
         char *filesInsideFolder[MAX_FILENAME_LENGTH * sizeof(char)];
-        readFolderFiles(fullName, filesInsideFolder); for (int i = 0;
-             i < sizeof(filesInsideFolder) / MAX_FILENAME_LENGTH / sizeof(char);
-             i++) {
-          files[idx] = filesInsideFolder[i];
-          idx++;
-        }
+        int test;
+        readFolderFiles(fullName, files, &idx, &test);
       } else {
-        files[idx] = fullName;
+        strcpy(files[idx], fullName);
         idx++;
       }
-      free(fullName);
     }
   }
+  *size = idx;
+  *index = idx;
 }
 
 void splitFile2Bytes(FILE *file, int size, int *bytes[256 / sizeof(int)]) {
@@ -79,7 +74,7 @@ void splitFile2Bytes(FILE *file, int size, int *bytes[256 / sizeof(int)]) {
 
   int idx, c, max;
   int bytesIdx = 0;
-  int pieces = 16; //TODO make this dynamic
+  int pieces = 16; // TODO make this dynamic
   int myBytes[256 / sizeof(int)][pieces];
 
   for (idx = 0, max = 0; max < size; idx++, max++) {
@@ -94,14 +89,15 @@ void splitFile2Bytes(FILE *file, int size, int *bytes[256 / sizeof(int)]) {
   if (idx != 0) {
     for (idx = idx; idx < 256 / sizeof(int); idx++) {
       myBytes[bytesIdx][idx] = 0;
-      printf("%d, %d, %d\n",myBytes[bytesIdx][idx], idx, bytesIdx);
+      printf("%d, %d, %d\n", myBytes[bytesIdx][idx], idx, bytesIdx);
     }
   }
   for (int i = 0; i < bytesIdx + 1; i++)
     bytes[i] = myBytes[i];
 
   printf("Last byteIdx: %d\n", bytesIdx);
-  /*puts(""); //TODO: Why the heck is this important. Code doesn't work without this*/
+  /*puts(""); //TODO: Why the heck is this important. Code doesn't work without
+   * this*/
 }
 
 int getFileSize(FILE *file) {
@@ -137,7 +133,8 @@ unsigned char *hashFile(int *bytes, int bytesSize) {
   }
 
   SHA1_Final(hash, &mdContent);
-  for (i = 0; i < SHA_DIGEST_LENGTH; i++) printf("%02x", hash[i]);
+  for (i = 0; i < SHA_DIGEST_LENGTH; i++)
+    printf("%02x", hash[i]);
   puts("\n");
   return hash;
 }
@@ -174,10 +171,10 @@ int tests() {
   FILE *file = fopen(filename, "rb");
   int size = getFileSize(file);
   int *bytes[256 / sizeof(int)];
-  printf("Size of bytes: %d\n", (int) sizeof(bytes));
+  printf("Size of bytes: %d\n", (int)sizeof(bytes));
   printf("Size of file: %d\n", size);
   splitFile2Bytes(file, size, bytes);
-  printf("Size of bytes: %d\n", (int) sizeof(bytes));
+  printf("Size of bytes: %d\n", (int)sizeof(bytes));
   for (int i = 0; i < 5; i++) {
     hashFile(bytes[i], 64);
   }
