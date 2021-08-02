@@ -11,7 +11,7 @@
 // Running gdb: gcc -Wall -g main.c -lcrypto -lm -o main
 // Using it:    gcc -Wall main.c -lcrypto -lm -o main
 
-void readFolderFiles(char *dirname, char files[100][100], int *index, int *size);
+void readFolderFiles(char *dirname, char files[MAX_FILENAME][100], int *index);
 int compressFile(char *filename);
 void splitFile2Bytes(FILE *file, int size, int *bytes[256 / sizeof(int)]);
 int cryptFile(char *key, char *filename, char *type);
@@ -19,19 +19,7 @@ int getFileSize(FILE *file);
 int tests();
 unsigned char *hashFile();
 
-/*int main() {*/
-/*tests();*/
-/*int err = cryptFile("a random key", "./test/testfiles", "encrypt");*/
-/*cryptFile("a random key", "./test/testfiles", "decrypt");*/
-/*if (err == -1) {*/
-/*puts("Error");*/
-/*}*/
-
-/*return 0;*/
-/*}*/
-
-void readFolderFiles(char *dirname, char files[100][100], int *index, int *size) {
-  const int MAX_FILENAME_LENGTH = 10;
+void readFolderFiles(char *dirname, char files[MAX_FILENAME][100], int *index) {
   DIR *folder;
   int idx = *index;
   struct dirent *entry;
@@ -42,7 +30,8 @@ void readFolderFiles(char *dirname, char files[100][100], int *index, int *size)
   } else {
     while ((entry = readdir(folder))) {
       char *name = entry->d_name;
-      if (name[0] == '.') {
+      printf("Size: %d %s\n", (int)strlen(name), name);
+      if (name[0] == '.' || (name[strlen(name) - 1] == 'f' && name[strlen(name) - 2] == '.')) {
         continue;
       }
       char fullName[strlen(dirname) + strlen(name) + sizeof(char)];
@@ -51,16 +40,13 @@ void readFolderFiles(char *dirname, char files[100][100], int *index, int *size)
       strcat(fullName, name);
 
       if (entry->d_type == 4) {
-        char *filesInsideFolder[MAX_FILENAME_LENGTH * sizeof(char)];
-        int test;
-        readFolderFiles(fullName, files, &idx, &test);
+        readFolderFiles(fullName, files, &idx);
       } else {
         strcpy(files[idx], fullName);
         idx++;
       }
     }
   }
-  *size = idx;
   *index = idx;
 }
 
@@ -96,8 +82,6 @@ void splitFile2Bytes(FILE *file, int size, int *bytes[256 / sizeof(int)]) {
     bytes[i] = myBytes[i];
 
   printf("Last byteIdx: %d\n", bytesIdx);
-  /*puts(""); //TODO: Why the heck is this important. Code doesn't work without
-   * this*/
 }
 
 int getFileSize(FILE *file) {
@@ -159,9 +143,9 @@ int compressFile(char *filename) {
 }
 
 int createFile(char *filename) {
-  char command[MAX_FILENAME] = "touch ";
   int err;
-  strcat(command, filename);
+  char command[MAX_FILENAME * 3];
+  sprintf(command, "file=\"%s\" && mkdir -p \"${file%%/*}\" && touch \"$file.f\"", filename);
   err = system(command);
   return err;
 }
