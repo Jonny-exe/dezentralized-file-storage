@@ -31,17 +31,25 @@ SERVER
 ----
   - [x] Listen on some port
 
+PROCESSES
+----
+  - [ ] Read all the files:
+    - [ ] Compress, encrypt, split and hash
+    - [ ] Make a list of those hashes in a file
+  - [ ] Start TCP server and listen for requests
+    - [ ] When a request for a file comes in:
+      - [ ] Check all the hashes and if one coincides then send that file
+      - [ ] If you don't have the file send a request for 
+        that file to everyone you know in the DHT 
+        with the first requester as the direction.
+  - [ ] Start file listener
+    - [ ] When a file changes or is added handle the file
+    - [ ] Update your file list
+
+
 DO NOW
 ----
   - [x] Full function to handle entire file: 
   (compress, encrypt, split, hash)
-    
-
-
-
-
-
-
-
-
-# share-files
+  - [ ] Fix hashing function
+  - [ ] Write function to send a group of bytes
