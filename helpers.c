@@ -5,14 +5,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <sys/inotify.h>
 
 #define MAX_FILENAME 80
 #define MAX_FILE_SIZE 4294967296 // 4 gb
-#define EVENT_SIZE  (sizeof(struct inotify_event))
-#define BUF_LEN     (1024 * (EVENT_SIZE + 16))
-
-
+#define EVENT_SIZE (sizeof(struct inotify_event))
+#define BUF_LEN (1024 * (EVENT_SIZE + 16))
 
 // Running gdb: gcc -Wall -g main.c -lcrypto -lm -o main
 // Using it:    gcc -Wall main.c -lcrypto -lm -o main
@@ -23,7 +22,7 @@ void splitFile2Bytes(FILE *file, int size, int *bytes[256 / sizeof(int)]);
 int cryptFile(char *key, char *filename, char *type);
 int getFileSize(FILE *file);
 int listenFolder(char *dirname);
-unsigned char *hashFile(int *bytes, int bytesSize);
+void hashFile(int *bytes, int bytesSize, unsigned char *hash);
 int tests();
 
 void readFolderFiles(char *dirname, char files[MAX_FILENAME][100], int *index) {
@@ -38,7 +37,8 @@ void readFolderFiles(char *dirname, char files[MAX_FILENAME][100], int *index) {
     while ((entry = readdir(folder))) {
       char *name = entry->d_name;
       printf("Size: %d %s\n", (int)strlen(name), name);
-      if (name[0] == '.' || (name[strlen(name) - 1] == 'f' && name[strlen(name) - 2] == '.')) {
+      if (name[0] == '.' ||
+          (name[strlen(name) - 1] == 'f' && name[strlen(name) - 2] == '.')) {
         continue;
       }
       char fullName[strlen(dirname) + strlen(name) + sizeof(char)];
@@ -67,7 +67,8 @@ void splitFile2Bytes(FILE *file, int size, int *bytes[256 / sizeof(int)]) {
 
   int idx, c, max;
   int bytesIdx = 0;
-  int pieces = 16; // TODO make this dynamic
+  int pieces = ceil((double)size / (double)64); // TODO make this dynamic
+  //int pieces = 16;
   int myBytes[256 / sizeof(int)][pieces];
 
   for (idx = 0, max = 0; max < size; idx++, max++) {
@@ -85,8 +86,10 @@ void splitFile2Bytes(FILE *file, int size, int *bytes[256 / sizeof(int)]) {
       printf("%d, %d, %d\n", myBytes[bytesIdx][idx], idx, bytesIdx);
     }
   }
-  for (int i = 0; i < bytesIdx + 1; i++)
+  int i;
+  for (i = 0; i < (bytesIdx + 1); i++) {
     bytes[i] = myBytes[i];
+  }
 
   printf("Last byteIdx: %d\n", bytesIdx);
 }
@@ -108,19 +111,18 @@ int getFileSize(FILE *file) {
   return size;
 }
 
-unsigned char *hashFile(int *bytes, int bytesSize) {
-  // TODO
+void hashFile(int *bytes, int bytesSize, unsigned char *hash) {
   int i;
-  unsigned char hash[SHA_DIGEST_LENGTH];
+  //unsigned char hash[SHA_DIGEST_LENGTH];
   SHA_CTX mdContent;
   SHA1_Init(&mdContent);
 
   printf("Size of a: %d %d\n", (int)sizeof(&bytes), (int)sizeof(int));
 
-  // while((bytes = fread(data, 1, 1024, file)))
   for (i = 0; i < bytesSize; i++) {
     printf("Test: %d, Idx: %d\n", bytes[i], i);
-    SHA1_Update(&mdContent, &bytes[i], sizeof(&bytes[i]));
+    //FIXME: can't make it work with ints
+    SHA1_Update(&mdContent, "asdf", sizeof("asdf"));
   }
 
   SHA1_Final(hash, &mdContent);
@@ -152,7 +154,9 @@ int compressFile(char *filename) {
 int createFile(char *filename) {
   int err;
   char command[MAX_FILENAME * 3];
-  sprintf(command, "file=\"%s\" && mkdir -p \"${file%%/*}\" && touch \"$file.f\"", filename);
+  sprintf(command,
+          "file=\"%s\" && mkdir -p \"${file%%/*}\" && touch \"$file.f\"",
+          filename);
   err = system(command);
   return err;
 }
@@ -170,8 +174,7 @@ int listenFolder(char *dirname) {
     if (fd < 0) {
       perror("inotify_init");
     }
-    wd = inotify_add_watch(fd, dirname,
-        IN_MODIFY | IN_CREATE | IN_DELETE);
+    wd = inotify_add_watch(fd, dirname, IN_MODIFY | IN_CREATE | IN_DELETE);
     length = read(fd, buffer, BUF_LEN);
 
     if (length < 0) {
@@ -179,8 +182,7 @@ int listenFolder(char *dirname) {
     }
 
     while (i < length) {
-      struct inotify_event *event =
-        (struct inotify_event *) &buffer[i];
+      struct inotify_event *event = (struct inotify_event *)&buffer[i];
       if (event->len) {
         if (event->mask & IN_CREATE) {
           printf("The file %s was created.\n", event->name);
@@ -193,8 +195,8 @@ int listenFolder(char *dirname) {
       i += EVENT_SIZE + event->len;
     }
 
-    (void) inotify_rm_watch(fd, wd);
-    (void) close(fd);
+    (void)inotify_rm_watch(fd, wd);
+    (void)close(fd);
   }
 
   return 0;
@@ -204,13 +206,14 @@ int tests() {
   char filename[MAX_FILENAME] = "./test/testfiles";
   FILE *file = fopen(filename, "rb");
   int size = getFileSize(file);
-  int *bytes[256 / sizeof(int)];
+  int bytes[256 / sizeof(int)][16];
   printf("Size of bytes: %d\n", (int)sizeof(bytes));
   printf("Size of file: %d\n", size);
   splitFile2Bytes(file, size, bytes);
   printf("Size of bytes: %d\n", (int)sizeof(bytes));
+  unsigned char *hashes[SHA_DIGEST_LENGTH];
   for (int i = 0; i < 5; i++) {
-    hashFile(bytes[i], 64);
+    hashFile(bytes[i], 64, hashes[i]);
   }
   return 0;
 }

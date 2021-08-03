@@ -1,12 +1,11 @@
-#include <string.h>
-#include <stdio.h>
-#include <sys/inotify.h>
 #include "helpers.c"
+#include <stdio.h> 
+#include <string.h>
+#include <sys/inotify.h>
 #define MAX_FILENAME 80
 
 int createFakeTree(char files[MAX_FILENAME][100], int size);
 int handleFile(char *filename);
-
 int main() {
   /*char files[MAX_FILENAME][100];*/
   /*char dirname[MAX_FILENAME] = "./test";*/
@@ -14,7 +13,7 @@ int main() {
 
   /*readFolderFiles(dirname, files, &index); */
   /*createFakeTree(files, index);*/
-	/*listenFolder(".");*/
+  /*listenFolder(".");*/
   char filename[100] = "./test/testfiles";
   handleFile(filename);
   return 0;
@@ -23,7 +22,7 @@ int main() {
 int createFakeTree(char files[MAX_FILENAME][100], int size) {
   int i;
   for (i = 0; i < size; i++) {
-    (void) createFile(files[i]);
+    (void)createFile(files[i]);
   }
   return 0;
 }
@@ -32,22 +31,26 @@ int handleFile(char *filename) {
   int err;
   err = compressFile(filename);
   if (err == -1)
-    printf("Error compressing file\n");;
+    printf("Error compressing file\n");
+  ;
 
   strcat(filename, ".gz");
   err = cryptFile("a random key", filename, "encrypt");
   if (err == -1)
     printf("Error encrypting file\n");
-  
+
   strcat(filename, ".cpt");
   FILE *file = fopen(filename, "rb");
   int size = getFileSize(file);
+  printf("Size: %d", size);
   int *bytes[256 / sizeof(int)];
   splitFile2Bytes(file, size, bytes);
 
+  unsigned char hashes[40][4];
+  printf("%d\n", bytes[1][0]);
   for (int i = 0; i < 4; i++) {
-    printf("%d\n", i);
-    hashFile(bytes[i], 64);
+    printf("%d\n", bytes[i][0]);
+    hashFile(bytes[i], 64, hashes[i]);
   }
   return 0;
 }
