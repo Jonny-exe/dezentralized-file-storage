@@ -2,26 +2,41 @@
 
 INIT FILES
 ----
-  - Read all files
-  - Create list of files and their destination 
+  - [x] Read all files
+  - [ ] Create list of files and their destination 
   (ASK HOW THE HELL THE NETWORK SHOULD WORK)
-  - Create some initial users list to spread the message
-  - Create a hash for each file dependent on its content
+  - [ ] Create some initial users list to spread the message
+  - [x] Create a hash for each file dependent on its content
 
 COMPUTERS
 ----
-  - Identify with hashes
-  - Have to be part of a group indentified by a hash
-  - Have to update their IP address to DHT each day
-  - Have to run TCP server
+  - [ ] Personal encryption key
+  - [x] Identify with hashes
+  - [ ] Have to be part of a group indentified by a hash
+  - [ ] Have to update their IP address to DHT each day
+  - [x] Have to run TCP server
 
 NETWORK
 ----
-  - Has to be decentralized
-  - It has to have a DHT (dezentralized hash table) to keep all the users 
-  and it's files
-  - TCP server
+  - [x] Has to be decentralized
+  - [x] It has to have a DHT 
+  (dezentralized hash table) to keep all the users and it's files
+  - [x] TCP server
 
 SERVER
 ----
-  - Listen on some port
+  - [x] Listen on some port
+
+DO NOW
+----
+  - [x] Full function to handle entire file: 
+  (compress, encrypt, split, hash)
+    
+
+
+
+
+
+
+
+
