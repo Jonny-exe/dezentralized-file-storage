@@ -112,6 +112,7 @@ int getFileSize(FILE *file) {
 }
 
 void hashFile(int *bytes, int bytesSize, unsigned char *hash) {
+  // TODO: maybe use something better
   int i;
   //unsigned char hash[SHA_DIGEST_LENGTH];
   SHA_CTX mdContent;
@@ -121,8 +122,9 @@ void hashFile(int *bytes, int bytesSize, unsigned char *hash) {
 
   for (i = 0; i < bytesSize; i++) {
     printf("Test: %d, Idx: %d\n", bytes[i], i);
-    //FIXME: can't make it work with ints
-    SHA1_Update(&mdContent, "asdf", sizeof("asdf"));
+    char intString[5];
+    sprintf(intString, "%d", bytes[i]);
+    SHA1_Update(&mdContent, intString, sizeof(intString));
   }
 
   SHA1_Final(hash, &mdContent);
