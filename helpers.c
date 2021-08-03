@@ -111,10 +111,10 @@ int getFileSize(FILE *file) {
   return size;
 }
 
-void hashFile(int *bytes, int bytesSize, unsigned char *ahash) {
+void hashFile(int *bytes, int bytesSize, unsigned char *finalhash) {
   // TODO: maybe use something better
   int i;
-  unsigned char *hash = malloc(40);;
+  unsigned char *hash = malloc(SHA_DIGEST_LENGTH);;
   SHA_CTX mdContent;
   SHA1_Init(&mdContent);
 
@@ -127,14 +127,14 @@ void hashFile(int *bytes, int bytesSize, unsigned char *ahash) {
   }
 
   SHA1_Final(hash, &mdContent);
+  printf("SHA LENGTH: %d\n", SHA_DIGEST_LENGTH * 2 + 1);
   int idx = 0;
-  for (i = 0; i < SHA_DIGEST_LENGTH; i++)
+  for (i = 0; i < SHA_DIGEST_LENGTH; i++) {
     char piece[3];
-    sprintf(piece, "%02x", hash[i]);
-    hash[idx] = piece[0];
-    hash[idx + 1] = piece[1];
+    sprintf(finalhash + idx, "%02x", hash[i]);
     idx += 2;
-  puts("\n");
+  }
+  finalhash[SHA_DIGEST_LENGTH * 2 + 1] = '\0';
 }
 
 int cryptFile(char *key, char *filename, char *type) {
