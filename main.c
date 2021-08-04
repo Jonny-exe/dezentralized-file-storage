@@ -28,11 +28,10 @@ int createFakeTree(char files[MAX_FILENAME][100], int size) {
 }
 
 int handleFile(char *filename) {
-  int err;
+  int err, i;
   err = compressFile(filename);
   if (err == -1)
     printf("Error compressing file\n");
-  ;
 
   strcat(filename, ".gz");
   err = cryptFile("a random key", filename, "encrypt");
@@ -41,16 +40,19 @@ int handleFile(char *filename) {
 
   strcat(filename, ".cpt");
   FILE *file = fopen(filename, "rb");
-  int size = getFileSize(file);
-  printf("Size: %d", size);
-  int *bytes[256 / sizeof(int)];
-  splitFile2Bytes(file, size, bytes);
 
-  unsigned char hashes[40][4];
-  printf("%d\n", bytes[1][0]);
-  for (int i = 0; i < 4; i++) {
-    printf("%d\n", bytes[i][0]);
+  int size = getFileSize(file);
+  int times = ceil((double)size / (double)64);
+  int bytes[256 / sizeof(int)][times];
+  splitFile2Bytes(file, size, bytes, times);
+
+  unsigned char hashes[41][times];
+  for (int i = 0; i < times; i++) {
     hashFile(bytes[i], 64, hashes[i]);
   }
+
+  for (int i = 0; i < times; i++)
+    printf("%s\n", hashes[i]);
+
   return 0;
 }

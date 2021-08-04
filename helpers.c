@@ -18,7 +18,7 @@
 
 void readFolderFiles(char *dirname, char files[MAX_FILENAME][100], int *index);
 int compressFile(char *filename);
-void splitFile2Bytes(FILE *file, int size, int *bytes[256 / sizeof(int)]);
+void splitFile2Bytes(FILE *file, int size, int *bytes[256 / sizeof(int)], int times);
 int cryptFile(char *key, char *filename, char *type);
 int getFileSize(FILE *file);
 int listenFolder(char *dirname);
@@ -57,7 +57,7 @@ void readFolderFiles(char *dirname, char files[MAX_FILENAME][100], int *index) {
   *index = idx;
 }
 
-void splitFile2Bytes(FILE *file, int size, int *bytes[256 / sizeof(int)]) {
+void splitFile2Bytes(FILE *file, int size, int **bytes, int times) {
   // TODO: fix this with huge files:
   // https://stackoverflow.com/questions/41859547/how-to-read-a-large-file-with-function-read-in-c?noredirect=1&lq=1
   if (file == NULL) {
@@ -67,9 +67,7 @@ void splitFile2Bytes(FILE *file, int size, int *bytes[256 / sizeof(int)]) {
 
   int idx, c, max;
   int bytesIdx = 0;
-  int pieces = ceil((double)size / (double)64); // TODO make this dynamic
-  //int pieces = 16;
-  int myBytes[256 / sizeof(int)][pieces];
+  int myBytes[256 / sizeof(int)][times];
 
   for (idx = 0, max = 0; max < size; idx++, max++) {
     c = getc(file);
@@ -83,15 +81,9 @@ void splitFile2Bytes(FILE *file, int size, int *bytes[256 / sizeof(int)]) {
   if (idx != 0) {
     for (idx = idx; idx < 256 / sizeof(int); idx++) {
       myBytes[bytesIdx][idx] = 0;
-      printf("%d, %d, %d\n", myBytes[bytesIdx][idx], idx, bytesIdx);
     }
   }
-  int i;
-  for (i = 0; i < (bytesIdx + 1); i++) {
-    bytes[i] = myBytes[i];
-  }
-
-  printf("Last byteIdx: %d\n", bytesIdx);
+  memcpy(bytes, myBytes, 256 * times);
 }
 
 int getFileSize(FILE *file) {
@@ -114,11 +106,10 @@ int getFileSize(FILE *file) {
 void hashFile(int *bytes, int bytesSize, unsigned char *finalhash) {
   // TODO: maybe use something better
   int i;
-  unsigned char *hash = malloc(SHA_DIGEST_LENGTH);;
+  //unsigned char *hash = malloc(SHA_DIGEST_LENGTH);;
+  unsigned char hash[SHA_DIGEST_LENGTH + 1];
   SHA_CTX mdContent;
   SHA1_Init(&mdContent);
-
-  printf("Size of a: %d %d\n", (int)sizeof(&bytes), (int)sizeof(int));
 
   for (i = 0; i < bytesSize; i++) {
     char intString[5];
@@ -127,14 +118,12 @@ void hashFile(int *bytes, int bytesSize, unsigned char *finalhash) {
   }
 
   SHA1_Final(hash, &mdContent);
-  printf("SHA LENGTH: %d\n", SHA_DIGEST_LENGTH * 2 + 1);
   int idx = 0;
   for (i = 0; i < SHA_DIGEST_LENGTH; i++) {
-    char piece[3];
     sprintf(finalhash + idx, "%02x", hash[i]);
     idx += 2;
   }
-  finalhash[SHA_DIGEST_LENGTH * 2 + 1] = '\0';
+  finalhash[SHA_DIGEST_LENGTH * 2] = '\0';
 }
 
 int cryptFile(char *key, char *filename, char *type) {
@@ -210,12 +199,12 @@ int listenFolder(char *dirname) {
 int tests() {
   char filename[MAX_FILENAME] = "./test/testfiles";
   FILE *file = fopen(filename, "rb");
+
   int size = getFileSize(file);
-  int bytes[256 / sizeof(int)][16];
-  printf("Size of bytes: %d\n", (int)sizeof(bytes));
-  printf("Size of file: %d\n", size);
-  splitFile2Bytes(file, size, bytes);
-  printf("Size of bytes: %d\n", (int)sizeof(bytes));
+  int times = ceil((double)size / (double)64);
+  int bytes[256 / sizeof(int)][times];
+
+  splitFile2Bytes(file, size, bytes, times);
   unsigned char *hashes[SHA_DIGEST_LENGTH];
   for (int i = 0; i < 5; i++) {
     hashFile(bytes[i], 64, hashes[i]);
