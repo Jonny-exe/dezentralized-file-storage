@@ -43,16 +43,24 @@ int handleFile(char *filename) {
 
   int size = getFileSize(file);
   int times = ceil((double)size / (double)64);
-  int bytes[256 / sizeof(int)][times];
+  //int bytes[256 / sizeof(int)][times];
+  int bytes[times][256 / sizeof(int)];
   splitFile2Bytes(file, size, bytes, times);
+
+  int j;
+  for (i = 0; i < times; i++) {
+    for (j = 0; j < 64; j++)
+      printf("Test: %d\n", bytes[i][j]);
+  }
+  fclose(file);
 
   unsigned char hashes[41][times];
   for (int i = 0; i < times; i++) {
     hashFile(bytes[i], 64, hashes[i]);
   }
 
-  for (int i = 0; i < times; i++)
-    printf("%s\n", hashes[i]);
-
+  strcat(filename, ".f");
+  createFile(filename);
+  file = fopen(filename, "w");
   return 0;
 }

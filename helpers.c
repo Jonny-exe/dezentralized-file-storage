@@ -18,7 +18,7 @@
 
 void readFolderFiles(char *dirname, char files[MAX_FILENAME][100], int *index);
 int compressFile(char *filename);
-void splitFile2Bytes(FILE *file, int size, int *bytes[256 / sizeof(int)], int times);
+void splitFile2Bytes(FILE *file, int size, int *bytes, int times);
 int cryptFile(char *key, char *filename, char *type);
 int getFileSize(FILE *file);
 int listenFolder(char *dirname);
@@ -57,7 +57,8 @@ void readFolderFiles(char *dirname, char files[MAX_FILENAME][100], int *index) {
   *index = idx;
 }
 
-void splitFile2Bytes(FILE *file, int size, int **bytes, int times) {
+//void splitFile2Bytes(FILE *file, int size, int **bytes, int times) {
+void splitFile2Bytes(FILE *file, int size, int *bytes, int times) {
   // TODO: fix this with huge files:
   // https://stackoverflow.com/questions/41859547/how-to-read-a-large-file-with-function-read-in-c?noredirect=1&lq=1
   if (file == NULL) {
@@ -67,11 +68,11 @@ void splitFile2Bytes(FILE *file, int size, int **bytes, int times) {
 
   int idx, c, max;
   int bytesIdx = 0;
-  int myBytes[256 / sizeof(int)][times];
 
   for (idx = 0, max = 0; max < size; idx++, max++) {
     c = getc(file);
-    myBytes[bytesIdx][idx] = c;
+    //myBytes[bytesIdx][idx] = c;
+    bytes[bytesIdx * (256 / sizeof(int)) + idx] = c;
     if (idx % 63 == 0 && idx != 0) {
       idx = -1;
       bytesIdx++;
@@ -80,10 +81,9 @@ void splitFile2Bytes(FILE *file, int size, int **bytes, int times) {
 
   if (idx != 0) {
     for (idx = idx; idx < 256 / sizeof(int); idx++) {
-      myBytes[bytesIdx][idx] = 0;
+      bytes[bytesIdx * (256 / sizeof(int)) + idx] = 0;
     }
   }
-  memcpy(bytes, myBytes, 256 * times);
 }
 
 int getFileSize(FILE *file) {
