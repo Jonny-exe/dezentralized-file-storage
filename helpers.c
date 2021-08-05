@@ -12,6 +12,8 @@
 #define MAX_FILE_SIZE 4294967296 // 4 gb
 #define EVENT_SIZE (sizeof(struct inotify_event))
 #define BUF_LEN (1024 * (EVENT_SIZE + 16))
+#define BLOCK_SIZE (256/sizeof(int))
+
 
 // Running gdb: gcc -Wall -g main.c -lcrypto -lm -o main
 // Using it:    gcc -Wall main.c -lcrypto -lm -o main
@@ -24,6 +26,8 @@ int getFileSize(FILE *file);
 int listenFolder(char *dirname);
 void hashFile(int *bytes, int bytesSize, unsigned char *hash);
 int tests();
+int createFile(char *filename);
+int removeFile(char *filename);
 
 void readFolderFiles(char *dirname, char files[MAX_FILENAME][100], int *index) {
   DIR *folder;
@@ -71,8 +75,7 @@ void splitFile2Bytes(FILE *file, int size, int *bytes, int times) {
 
   for (idx = 0, max = 0; max < size; idx++, max++) {
     c = getc(file);
-    //myBytes[bytesIdx][idx] = c;
-    bytes[bytesIdx * (256 / sizeof(int)) + idx] = c;
+    bytes[bytesIdx * BLOCK_SIZE + idx] = c;
     if (idx % 63 == 0 && idx != 0) {
       idx = -1;
       bytesIdx++;
@@ -80,8 +83,8 @@ void splitFile2Bytes(FILE *file, int size, int *bytes, int times) {
   }
 
   if (idx != 0) {
-    for (idx = idx; idx < 256 / sizeof(int); idx++) {
-      bytes[bytesIdx * (256 / sizeof(int)) + idx] = 0;
+    for (idx = idx; idx < BLOCK_SIZE; idx++) {
+      bytes[bytesIdx * BLOCK_SIZE + idx] = 0;
     }
   }
 }
@@ -129,9 +132,9 @@ int cryptFile(char *key, char *filename, char *type) {
 }
 
 int compressFile(char *filename) {
-  char command[MAX_FILENAME] = "gzip ";
+  char command[200];
   int result;
-  strcat(command, filename);
+  sprintf(command, "touch -t 10161000 '%s' && gzip '%s'", filename, filename);
   result = system(command);
   return result;
 }
@@ -142,6 +145,14 @@ int createFile(char *filename) {
   sprintf(command,
           "file=\"%s\" && mkdir -p \"${file%%/*}\" && touch \"$file.f\"",
           filename);
+  err = system(command);
+  return err;
+}
+
+int removeFile(char *filename) {
+  int err;
+  char command[MAX_FILENAME * 3];
+  sprintf(command, "rm '%s'", filename);
   err = system(command);
   return err;
 }
@@ -193,7 +204,7 @@ int tests() {
 
   int size = getFileSize(file);
   int times = ceil((double)size / (double)64);
-  int bytes[256 / sizeof(int)][times];
+  int bytes[BLOCK_SIZE][times];
 
   splitFile2Bytes(file, size, bytes, times);
   unsigned char *hashes[SHA_DIGEST_LENGTH];

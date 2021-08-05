@@ -3,6 +3,7 @@
 #include <string.h>
 #include <sys/inotify.h>
 #define MAX_FILENAME 80
+#define TEMP_FILE "temp.tar"
 
 int createFakeTree(char files[MAX_FILENAME][100], int size);
 int handleFile(char *filename);
@@ -29,40 +30,40 @@ int createFakeTree(char files[MAX_FILENAME][100], int size) {
 
 int handleFile(char *filename) {
   int err, i;
-  //err = compressFile(filename);
+  char command[100];
+  sprintf(command, "mv '%s' temp",  filename);
+  err = system(command);
+  err = compressFile("temp");
   if (err == -1)
     printf("Error compressing file\n");
-
   strcat(filename, ".gz");
-  //err = cryptFile("a random key", filename, "encrypt");
-  if (err == -1)
-    printf("Error encrypting file\n");
+  sprintf(command, "mv temp.gz '%s'",  filename);
+  err = system(command);
 
-  strcat(filename, ".cpt");
   FILE *file = fopen(filename, "rb");
 
   int size = getFileSize(file);
   int times = ceil((double)size / (double)64);
-  //int bytes[256 / sizeof(int)][times];
   int bytes[times][256 / sizeof(int)];
   splitFile2Bytes(file, size, bytes, times);
 
   int j;
-  for (i = 0; i < times; i++) {
-    for (j = 0; j < 64; j++)
-      printf("Test: %d\n", bytes[i][j]);
-  }
   fclose(file);
 
   unsigned char hashes[times][80];
-  for (int i = 0; i < times; i++) {
+  for (i = 0; i < times; i++) {
     hashFile(bytes[i], 64, hashes[i]);
   }
-  printf("%s\n", hashes[0]);
-  printf("%s\n", hashes[0]);
+  err = cryptFile("a random key", filename, "encrypt");
+  if (err == -1)
+    printf("Error encrypting file\n");
+  strcat(filename, ".cpt");
 
-  strcat(filename, ".f");
   createFile(filename);
+  strcat(filename, ".f");
   file = fopen(filename, "w");
+  for (i = 0; i < times; i++) {
+    fprintf(file, "%s\n", hashes[i]);
+  }
   return 0;
 }
