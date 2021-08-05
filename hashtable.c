@@ -3,7 +3,6 @@
 #include <time.h>
 #include <string.h>
 #define SEPARATOR "||"
-#define FILENAME "local_hash_table"
 #define MAX_SIZE 200
 
 typedef struct row {
@@ -11,24 +10,26 @@ typedef struct row {
   char ip[80];
 } row_t;
 
-int init_table();
+int init_table(char *filename);
 int update_row(row_t *table, char *key, char *new_value, int lines);
 int insert_row(row_t *table, char *new_key, char *new_value, int *lines);
 int remove_row(row_t *table, char *key, int lines);
-int read_table(row_t *table, int *lines);
-int write_table(row_t *table, int lines);
+int read_table(char *filename, row_t *table, int *lines);
+int write_table(char *filename, row_t *table, int lines);
 void format_date(char *output);
+int hash_exists(row_t *table, char *hash, int lines);
 
-int main() {
+int test() {
   int err;
-  err = init_table();
+  char filename[100] = "local_hash_table";
+  err = init_table(filename);
   if (err == -1) {
     printf("Error initializing file\n");
   }
 
   row_t table[MAX_SIZE];
   int lines;
-  err = read_table(table, &lines);
+  err = read_table(filename, table, &lines);
   if (err == -1)
     printf("Error reading table\n");
 
@@ -44,16 +45,16 @@ int main() {
   if (err == -1)
     printf("Error updating key\n");
 
-  err = write_table(table, lines);
+  err = write_table(filename, table, lines);
   if (err == -1) 
     printf("Error writing table\n");
   return 0;
 }
 
-int init_table() {
-  if (access(FILENAME, F_OK) != 0) {
+int init_table(char *filename) {
+  if (access(filename, F_OK) != 0) {
     FILE *file = NULL;
-    file = fopen(FILENAME, "w+");
+    file = fopen(filename, "w+");
     if (file == NULL) {
       return -1;
     }
@@ -65,7 +66,7 @@ int init_table() {
   return 0;
 }
 
-int read_table(row_t *table, int *lines ) {
+int read_table(char *filename, row_t *table, int *lines ) {
   char ch;
   int table_idx = -1;
   int separator_idx = 0;
@@ -73,7 +74,7 @@ int read_table(row_t *table, int *lines ) {
   int type = 1; // 0 == value, 1 == key
   char value[80];
   char key[80];
-  FILE *file = fopen(FILENAME, "r");
+  FILE *file = fopen(filename, "r");
 
   while((ch = fgetc(file)) != EOF) {
     if (ch == '\n') {
@@ -109,13 +110,13 @@ int read_table(row_t *table, int *lines ) {
   return 0;
 }
 
-int write_table(row_t *table, int lines) {
+int write_table(char *filename, row_t *table, int lines) {
   if (lines == 0) {
     return -1;
   }
 
   int err;
-  FILE *file = fopen(FILENAME, "w+");
+  FILE *file = fopen(filename, "w+");
   char date[20];
   format_date(date);
 
