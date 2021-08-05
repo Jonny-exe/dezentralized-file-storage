@@ -31,6 +31,18 @@ SERVER
 ----
   - [x] Listen on some port
 
+
+SERVER CONNECTION
+----
+  - Hash amount --> 
+  - <-- 0
+  - For hash amount:
+    - Hash --> 
+    - <-- 0
+    - Bytes for hash --> 
+    - <-- 0
+
+
 PROCESSES
 ----
   - [ ] Read all the files:
@@ -53,3 +65,4 @@ DO NOW
   (compress, encrypt, split, hash)
   - [ ] Fix hashing function
   - [ ] Write function to send a group of bytes
+  - [ ] Some not read all the files at once.

@@ -16,6 +16,7 @@ int server_bind(server_t *server, int PORT);
 int server_connect(server_t *server, int PORT);
 int server_write(server_t *server, char *buff, int size);
 int server_read(server_t *server, char *buff, int size);
+int connection_close(int conn_fd);
 
 int server_accept(server_t *server) {
   int err = 0;
@@ -28,14 +29,6 @@ int server_accept(server_t *server) {
   err = (conn_fd = accept(server->listen_fd, (struct sockaddr *)&client_addr,
                           &client_len));
   server->listen_fd = conn_fd;
-
-  /*err = close(conn_fd);*/
-
-  /*if (err == -1) {*/
-    /*perror("close");*/
-    /*printf("failed to close connection\n");*/
-    /*return err;*/
-  /*}*/
 
   return err;
 }
@@ -75,6 +68,7 @@ int server_connect(server_t *server, int PORT) {
 }
 
 int server_write(server_t *server, char *buff, int size) {
+  //TODO: write and read are not needed. They are too simple
   int err;
   err = write(server->listen_fd, buff, size);
   printf("Wrote '%s'\n", buff);
@@ -82,6 +76,7 @@ int server_write(server_t *server, char *buff, int size) {
 }
 
 int server_read(server_t *server, char *buff, int size) {
+  //TODO: write and read are not needed. They are too simple
   int err;
   err = read(server->listen_fd, buff, size);
   return err;
@@ -91,4 +86,14 @@ int server_close(server_t *server) {
   int err;
   err = close(server->listen_fd);
   return err;
+}
+
+int connection_close(int conn_fd) {
+  int err = close(conn_fd);
+  if (err == -1) {
+    perror("close");
+    printf("failed to close connection\n");
+    return err;
+  }
+  return 0;
 }

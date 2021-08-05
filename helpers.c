@@ -18,7 +18,7 @@
 // Running gdb: gcc -Wall -g main.c -lcrypto -lm -o main
 // Using it:    gcc -Wall main.c -lcrypto -lm -o main
 
-void readFolderFiles(char *dirname, char files[MAX_FILENAME][100], int *index);
+void readFolderFiles(char *dirname, char files[100][MAX_FILENAME], int *index);
 int compressFile(char *filename);
 void splitFile2Bytes(FILE *file, int size, int *bytes, int times);
 int cryptFile(char *key, char *filename, char *type);
@@ -29,7 +29,7 @@ int tests();
 int createFile(char *filename);
 int removeFile(char *filename);
 
-void readFolderFiles(char *dirname, char files[MAX_FILENAME][100], int *index) {
+void readFolderFiles(char *dirname, char files[100][MAX_FILENAME], int *index) {
   DIR *folder;
   int idx = *index;
   struct dirent *entry;
@@ -40,7 +40,6 @@ void readFolderFiles(char *dirname, char files[MAX_FILENAME][100], int *index) {
   } else {
     while ((entry = readdir(folder))) {
       char *name = entry->d_name;
-      printf("Size: %d %s\n", (int)strlen(name), name);
       if (name[0] == '.' ||
           (name[strlen(name) - 1] == 'f' && name[strlen(name) - 2] == '.')) {
         continue;
