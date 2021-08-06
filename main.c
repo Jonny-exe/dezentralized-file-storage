@@ -64,7 +64,8 @@ int main(int argc, char *argv[]) {
     }
 
     while (1) {
-      err = server_accept(&server);
+      int conn_fd;
+      err = server_accept(&server, &conn_fd);
       if (err == -1) {
         perror("accept");
         printf("server: Failed accepting connection\n");
@@ -72,14 +73,14 @@ int main(int argc, char *argv[]) {
       }
 
       int times, i = 0;
-      err = read(server.listen_fd, &times, sizeof(times));
+      err = read(conn_fd, &times, sizeof(times));
       if (err == -1) {
         perror("read");
         printf("client: Failed reading message\n");
         return err;
       }
 
-      err = write(server.listen_fd, &i, sizeof(int));
+      err = write(conn_fd, &i, sizeof(int));
       if (err == -1) {
         perror("write");
         printf("client: Failed writting message\n");
@@ -91,7 +92,7 @@ int main(int argc, char *argv[]) {
       int bytes[64][times];
       int zero = 0;
       for (i = 0; i < times; i++) {
-        err = read(server.listen_fd, hashes[i], 80);
+        err = read(conn_fd, hashes[i], 80);
         if (err == -1) {
           perror("read");
           printf("client: Failed reading message\n");
@@ -99,21 +100,21 @@ int main(int argc, char *argv[]) {
         }
         printf("Hash: %s\n", hashes[i]);
 
-        err = write(server.listen_fd, &zero, sizeof(int));
+        err = write(conn_fd, &zero, sizeof(int));
         if (err == -1) {
           perror("write");
           printf("client: Failed writting message\n");
           return err;
         }
 
-        err = read(server.listen_fd, bytes[i], sizeof(256));
+        err = read(conn_fd, bytes[i], sizeof(256));
         if (err == -1) {
           perror("read");
           printf("client: Failed reading message\n");
           return err;
         }
 
-        err = write(server.listen_fd, &zero, sizeof(int));
+        err = write(conn_fd, &zero, sizeof(int));
         if (err == -1) {
           perror("write");
           printf("client: Failed writting message\n");
@@ -121,7 +122,7 @@ int main(int argc, char *argv[]) {
         }
       }
 
-      err = connection_close(server.listen_fd);
+      err = connection_close(conn_fd);
       if (err == -1) {
         perror("close");
         printf("server: Failed closing connection\n");
@@ -147,8 +148,12 @@ int createFakeTree(char files[MAX_FILENAME][100], int size) {
 int handleFile(char *filename, server_t *server) {
   int err, i;
   char command[100];
-  sprintf(command, "mv '%s' temp",  filename);
-  err = system(command);
+  //sprintf(command, "mv '%s' temp",  filename);
+  //err = system(command);
+  err = rename(filename, "temp");
+  if (err == -1)
+    printf("Error moving file\n");
+
   err = compressFile("temp");
   if (err == -1)
     printf("Error compressing file\n");

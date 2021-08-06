@@ -10,7 +10,7 @@ typedef struct server {
   int listen_fd;
 } server_t;
 
-int server_accept(server_t *server);
+int server_accept(server_t *server, int *connection_fd);
 int server_listen(server_t *server);
 int server_bind(server_t *server, int PORT);
 int server_connect(server_t *server, int PORT);
@@ -18,7 +18,7 @@ int server_write(server_t *server, char *buff, int size);
 int server_read(server_t *server, char *buff, int size);
 int connection_close(int conn_fd);
 
-int server_accept(server_t *server) {
+int server_accept(server_t *server, int *connection_fd) {
   int err = 0;
   int conn_fd;
   socklen_t client_len;
@@ -28,7 +28,7 @@ int server_accept(server_t *server) {
 
   err = (conn_fd = accept(server->listen_fd, (struct sockaddr *)&client_addr,
                           &client_len));
-  server->listen_fd = conn_fd;
+  *connection_fd = conn_fd;
 
   return err;
 }
