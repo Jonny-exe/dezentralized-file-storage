@@ -6,6 +6,7 @@
 #include <sys/inotify.h>
 #define MAX_FILENAME 80
 #define TEMP_FILE "temp.tar"
+#define OTHERS_FILES "tempdir/"
 #define FILE_LIST "local_file_list"
 
 int createFakeTree(char files[MAX_FILENAME][100], int size);
@@ -15,7 +16,7 @@ int main(int argc, char *argv[]) {
   char dirname[100] = "./test";
   if (fork() == 0) {
     // Handle all the initial files and the TCP server
-    int PORT = 8080;
+    int PORT = atoi(argv[2]);
     server_t server = {0};
 
     err = (server.listen_fd = socket(AF_INET, SOCK_STREAM, 0));
@@ -26,20 +27,22 @@ int main(int argc, char *argv[]) {
     }
 
     printf("Argv: %s\n", argv[1]);
-    if (argv[1] == NULL) {
-      puts("Inside");
-      err = server_connect(&server, PORT);
-      if (err) {
-        perror("connect");
-        printf("client: Failed to connect to socket\n");
-        return err;
-      } else {
-        printf("client: Connected to socket\n");
-      }
-
+    if (strcmp(argv[1], "send") == 0) {
       char files[100][MAX_FILENAME];
       int index, i;
+
       readFolderFiles(dirname, files, &index);
+      if (index != 0) {
+        err = server_connect(&server, PORT);
+        if (err) {
+          perror("connect");
+          printf("client: Failed to connect to socket\n");
+          return err;
+        } else {
+          printf("client: Connected to socket\n");
+        }
+      }
+
       for (i = 0; i < index; i++) {
         printf("File: %s\n", files[i]);
         handleFile(files[i], &server);
@@ -86,42 +89,57 @@ int main(int argc, char *argv[]) {
         printf("client: Failed writting message\n");
         return err;
       }
-      puts("Gout through");
 
-      char hashes[100][times];
-      int bytes[64][times];
       int zero = 0;
-      for (i = 0; i < times; i++) {
-        err = read(conn_fd, hashes[i], 80);
-        if (err == -1) {
-          perror("read");
-          printf("client: Failed reading message\n");
-          return err;
-        }
-        printf("Hash: %s\n", hashes[i]);
-
-        err = write(conn_fd, &zero, sizeof(int));
-        if (err == -1) {
-          perror("write");
-          printf("client: Failed writting message\n");
-          return err;
-        }
-
-        err = read(conn_fd, bytes[i], sizeof(256));
-        if (err == -1) {
-          perror("read");
-          printf("client: Failed reading message\n");
-          return err;
-        }
-
-        err = write(conn_fd, &zero, sizeof(int));
-        if (err == -1) {
-          perror("write");
-          printf("client: Failed writting message\n");
-          return err;
-        }
+      err = mkdir("tempdir/", 0777);
+      if (err == -1) {
+        printf("Error creating temp dir\n");
+        perror("mkdir");
       }
 
+      printf("Times: %d\n", times);
+      for (i = 0; i < times; i++) {
+        char hash[80];
+        int bytes[64];
+        err = read(conn_fd, hash, 80);
+        if (err == -1) {
+          perror("read");
+          printf("server: Failed reading message\n");
+          return err;
+        }
+        printf("Hash: %s, %d\n", hash, err);
+
+        err = write(conn_fd, &zero, sizeof(int));
+        if (err == -1) {
+          perror("write");
+          printf("server: Failed writting message\n");
+          return err;
+        }
+
+        err = read(conn_fd, bytes, 256);
+        if (err == -1) {
+          perror("read");
+          printf("server: Failed reading message\n");
+          return err;
+        }
+
+        err = write(conn_fd, &zero, sizeof(int));
+        if (err == -1) {
+          perror("write");
+          printf("server: Failed writting message\n");
+          return err;
+        }
+
+        int idx;
+        char filename[60] = "tempdir/";
+        strcat(filename, hash);
+        FILE *file = fopen(filename, "wb");
+        for (idx = 0; idx < 64; idx++)
+          fputc(bytes[idx], file);
+        fclose(file);
+      }
+
+      printf("Close");
       err = connection_close(conn_fd);
       if (err == -1) {
         perror("close");
@@ -191,6 +209,18 @@ int handleFile(char *filename, server_t *server) {
   fclose(file);
 
   int code;
+  err = write(server->listen_fd, &times, sizeof(times));
+  if (err == -1) {
+    perror("write");
+    printf("client: Failed writting message\n");
+  }
+
+  err = read(server->listen_fd, &code, sizeof(code));
+  if (err == -1 && code == 0) {
+    perror("read");
+    printf("client: Failed reading message\n");
+    return err;
+    }
   for (i = 0; i < times; i++) {
     // Steps: 
     // 1. Send times
@@ -198,38 +228,24 @@ int handleFile(char *filename, server_t *server) {
     // 3. Send bytes
     // 4. Repeat 2 and 3 for times
 
-    //err = server_write(&server, &times, sizeof(times));
-    err = write(server->listen_fd, &times, sizeof(times));
-    if (err == -1) {
-      perror("write");
-      printf("client: Failed writting message\n");
-    }
-
-    err = read(server->listen_fd, &code, sizeof(code));
-    if (err == -1 && code == 0) {
-      perror("read");
-      printf("client: Failed reading message\n");
-      return err;
-    }
-
-    err = write(server->listen_fd, hashes[i], sizeof(hashes[i]));
-    printf("Hash: %s, %d\n", hashes[i], sizeof(hashes[i]));
-    if (err == -1) {
-      perror("write");
-      printf("client: Failed writting message\n");
-    }
-
-    err = read(server->listen_fd, &code, sizeof(code));
-    if (err == -1 && code == 0) {
-      perror("read");
-      printf("client: Failed reading message\n");
-      return err;
-    }
-
+    printf("Hash: %s\n", hashes[i]);
     err = write(server->listen_fd, hashes[i], sizeof(hashes[i]));
     if (err == -1) {
       perror("write");
       printf("client: Failed writting message\n");
+    }
+
+    err = read(server->listen_fd, &code, sizeof(code));
+    if (err == -1) {
+      perror("read");
+      printf("client: Failed reading message\n");
+      return err;
+    }
+
+    err = write(server->listen_fd, bytes[i], sizeof(bytes[i]));
+    if (err == -1) {
+      perror("write");
+      printf("client: Failed writting message\n");
       return err;
     }
 
@@ -239,8 +255,8 @@ int handleFile(char *filename, server_t *server) {
       printf("client: Failed reading message\n");
       return err;
     }
-    remove(file2Remove);
   }
+  remove(file2Remove);
   return 0;
 }
 
