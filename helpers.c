@@ -23,11 +23,11 @@ int compressFile(char *filename);
 void splitFile2Bytes(FILE *file, int size, int *bytes, int times);
 int cryptFile(char *key, char *filename, char *type);
 int getFileSize(FILE *file);
-int listenFolder(char *dirname);
 void hashFile(int *bytes, int bytesSize, unsigned char *hash);
 int tests();
 int createFile(char *filename);
 int removeFile(char *filename);
+void hashesFromFile(char *filename, char *hashes, int *hashIdx);
 
 void readFolderFiles(char *dirname, char files[100][MAX_FILENAME], int *index) {
   DIR *folder;
@@ -138,6 +138,14 @@ int compressFile(char *filename) {
   return result;
 }
 
+int uncompressFile(char *filename) {
+  char command[100];
+  int result;
+  sprintf(command, "gunzip %s", filename);
+  result = system(command);
+  return result;
+}
+
 int createFile(char *filename) {
   int err;
   char command[MAX_FILENAME * 3];
@@ -156,45 +164,25 @@ int removeFile(char *filename) {
   return err;
 }
 
-int listenFolder(char *dirname) {
-  int length, i;
-  int fd;
-  int wd;
 
-  while (1) {
-    char buffer[BUF_LEN];
-    i = 0;
-    fd = inotify_init();
+void hashesFromFile(char *filename, char *hashes, int *hashIdx) {
+  FILE *file = fopen(filename, "r");
+  int idx = 0, hsIdx = 0;
 
-    if (fd < 0) {
-      perror("inotify_init");
+  char hash[40];
+  char ch;
+  while((ch = fgetc(file)) != EOF) {
+    if (ch == '\n') {
+      strcpy(hashes[hsIdx * 40], hash);
+      idx = 0;
+      hsIdx++;
+      continue;
     }
-    wd = inotify_add_watch(fd, dirname, IN_MODIFY | IN_CREATE | IN_DELETE);
-    length = read(fd, buffer, BUF_LEN);
-
-    if (length < 0) {
-      perror("read");
-    }
-
-    while (i < length) {
-      struct inotify_event *event = (struct inotify_event *)&buffer[i];
-      if (event->len) {
-        if (event->mask & IN_CREATE) {
-          printf("The file %s was created.\n", event->name);
-        } else if (event->mask & IN_DELETE) {
-          printf("The file %s was deleted.\n", event->name);
-        } else if (event->mask & IN_MODIFY) {
-          printf("The file %s was modified.\n", event->name);
-        }
-      }
-      i += EVENT_SIZE + event->len;
-    }
-
-    (void)inotify_rm_watch(fd, wd);
-    (void)close(fd);
+    hash[idx] = ch;
+    idx++;
   }
-
-  return 0;
+  
+  *hashIdx = hsIdx;
 }
 
 int tests() {

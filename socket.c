@@ -13,7 +13,7 @@ typedef struct server {
 int server_accept(server_t *server, int *connection_fd);
 int server_listen(server_t *server);
 int server_bind(server_t *server, int PORT);
-int server_connect(server_t *server, int PORT);
+int server_connect(server_t *server, char *addr, int PORT);
 int server_write(server_t *server, char *buff, int size);
 int server_read(server_t *server, char *buff, int size);
 int connection_close(int conn_fd);
@@ -57,11 +57,12 @@ int server_bind(server_t *server, int PORT) {
   return err;
 }
 
-int server_connect(server_t *server, int PORT) {
+int server_connect(server_t *server, char *addr, int PORT) {
   int err;
   struct sockaddr_in server_addr = {0};
   server_addr.sin_family = AF_INET;
-  server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+  //server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+  server_addr.sin_addr.s_addr = inet_addr(addr);   
   server_addr.sin_port = htons(PORT);
   err = connect(server->listen_fd, (struct sockaddr *)&server_addr, sizeof(server_addr));
   return err;
