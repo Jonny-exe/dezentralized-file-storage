@@ -166,19 +166,23 @@ int removeFile(char *filename) {
 
 
 void hashesFromFile(char *filename, char *hashes, int *hashIdx) {
+  printf("Filename: %s\n", filename);
   FILE *file = fopen(filename, "r");
+  if (file == NULL) {
+    printf("File does not exist\n");
+    return;
+  }
   int idx = 0, hsIdx = 0;
 
-  char hash[40];
-  char ch;
+  char hash[50];
+  int ch;
   while((ch = fgetc(file)) != EOF) {
     if (ch == '\n') {
-      strcpy(hashes[hsIdx * 40], hash);
       idx = 0;
       hsIdx++;
       continue;
     }
-    hash[idx] = ch;
+    hashes[hsIdx * 50 + idx] = ch;
     idx++;
   }
   
@@ -186,6 +190,7 @@ void hashesFromFile(char *filename, char *hashes, int *hashIdx) {
 }
 
 int tests() {
+  /*
   char filename[MAX_FILENAME] = "./test/testfiles";
   FILE *file = fopen(filename, "rb");
 
@@ -198,5 +203,10 @@ int tests() {
   for (int i = 0; i < 5; i++) {
     hashFile(bytes[i], 64, hashes[i]);
   }
+  */
+  char hashes[2][50];
+  int i;
+  hashesFromFile("test/asdfasdf.gz.cpt.f", hashes, &i);
+  printf("hashes: %s, %s\n", hashes[0], hashes[1]);
   return 0;
 }

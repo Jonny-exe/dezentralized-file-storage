@@ -11,6 +11,7 @@
 #define FILE_LIST "local_file_list"
 #define HASH_TABLE "local_hash_table"
 #define LOCALHOST "127.0.0.1"
+#define BUF_LEN (1024 * (EVENT_SIZE + 16))
 
 int createFakeTree(char files[MAX_FILENAME][100], int size);
 int handleFile(char *filename, server_t *server);
@@ -31,7 +32,9 @@ int main(int argc, char *argv[]) {
     }
 
     printf("Argv: %s\n", argv[1]);
+    
     if (strcmp(argv[1], "send") == 0) {
+      return 0;
       char files[100][MAX_FILENAME];
       int index, i;
 
@@ -71,6 +74,7 @@ int main(int argc, char *argv[]) {
 
     while (1) {
       int conn_fd;
+      puts("Waiting to accept");
       err = server_accept(&server, &conn_fd);
       if (err == -1) {
         perror("accept");
@@ -78,18 +82,19 @@ int main(int argc, char *argv[]) {
         return err;
       }
 
-      int i = 0, type;
+      int i = 0, type = 0;
       // Type: the type of connection. 
       //
       // 0 = request for some file. 
       // 1 = request to store files on this pc
 
-      err = read(conn_fd, &type, sizeof(type));
+      err = read(conn_fd, &type, sizeof(int));
       if (err == -1) {
         perror("read");
         printf("client: Failed reading message\n");
         return err;
       }
+      printf("TYPE: %d\n", type);
       if (type == 1) {
         int times;
         err = read(conn_fd, &times, sizeof(times));
@@ -170,10 +175,11 @@ int main(int argc, char *argv[]) {
           printf("client: Failed reading message\n");
           return err;
         }
+        printf("The hash is: %s\n", hash);
 
         char filename[60] = OTHERS_FILES;
         strcat(filename, hash);
-        if (access(hash, F_OK) != 0) {
+        if (access(filename, F_OK) != 0) {
           i = 1; // Don't have the file
           err = write(conn_fd, &i, sizeof(int));
           if (err == -1) {
@@ -204,14 +210,19 @@ int main(int argc, char *argv[]) {
         times = ceil((double)size / (double)64);
         splitFile2Bytes(file, size, bytes, times);
         err = write(conn_fd, bytes[0], 256);
+        for (int i = 0; i < 64; i++)
+          printf("BYTES:: %d\n", bytes[0][i]);
         if (err == -1)
           printf("Error sending bytes\n");
-        break;
+        connection_close(conn_fd);
       }
 
     }
   } else {
     // Handle the file listening
+    if (strcmp(argv[1], "send") != 0) {
+      strcpy(dirname, "test2");
+    }
     listenFolder(dirname);
     exit(0);
   }
@@ -333,6 +344,7 @@ int receiveFile(char *originalFilename) {
   //FIXME: this function doesn't work
   int times, lines, err, PORT, i;
    
+  printf("Original name: %s\n", originalFilename);
   printf("Before read_table\n"); 
   row_t hashtable[200];
   read_table(HASH_TABLE, hashtable, &lines);
@@ -341,34 +353,35 @@ int receiveFile(char *originalFilename) {
   server_t server = {0};
   PORT = 8080;
   err = (server.listen_fd = socket(AF_INET, SOCK_STREAM, 0));
+  perror("socket");
+  if (err == -1) {
+    perror("socket");
+    printf("client: Failed to create socket endpoint\n");
+    return err;
+  }
 
-  char hashes[10][40];
+  char hashes[10][50];
   int hashIdx;
   int zero = 0;
   int type = 0;
   printf("Before hashes\n");
   hashesFromFile(originalFilename, hashes, &hashIdx);
   printf("Hashes from file: %s\n", hashes[0]);
-  int bytes[hashIdx + 1][64];
+  printf("Hashes from file: %s, %d\n", hashes[1], hashIdx);
+  int bytes[hashIdx][64];
 
-  for (i = 0; i < hashIdx + 1; i++) {
-    server_connect(&server, hashtable[0].ip, PORT);
+  for (i = 0; i < hashIdx; i++) {
+    err = server_connect(&server, LOCALHOST, PORT);
+    if (err == -1) {
+      perror("connect");
+    }
     //TODO: make if one connection doens't work to try another one
-
 
     err = write(server.listen_fd, &type, sizeof(int));
     if (err == -1) {
       perror("write");
       printf("client: Failed writting message\n");
       return err;
-    }
-
-    err = read(server.listen_fd, &zero, sizeof(int));
-    if (err == -1 || zero != 0) {
-      perror("read");
-      printf("Error reading code\n");
-      return err;
-      //TODO: here in theory just try another ip
     }
 
     err = write(server.listen_fd, hashes[i], 40);
@@ -381,7 +394,7 @@ int receiveFile(char *originalFilename) {
     err = read(server.listen_fd, &zero, sizeof(int));
     if (err == -1 || zero != 0) {
       perror("read");
-      printf("Error reading code\n");
+      printf("Error reading code or incorrect code\n");
       return err;
       //TODO: here in theory just try another ip
     }
@@ -398,6 +411,9 @@ int receiveFile(char *originalFilename) {
       perror("read");
       printf("Error reading bytes\n");
     }
+
+    for(int j = 0; j < 64; j++)
+      printf("Bytes: %d\n", bytes[i][j]);
     connection_close(server.listen_fd);
   }
 
@@ -455,16 +471,20 @@ int listenFolder(char *dirname) {
         } else if (event->mask & IN_ACCESS) {
           printf("The file %s was accessed.\n", event->name);
           if (
-            name[strlen(name) - 1] == 'f' && name[strlen(name) - 2] == '.'
+            event->name[strlen(event->name) - 1] == 'f' && event->name[strlen(event->name) - 2] == '.'
           ) {
-            receiveFile(event->name);
+            char filename[80] = "test/";
+            strcat(filename, event->name);
+            receiveFile(filename);
           }
         } else if (event->mask & IN_OPEN) {
           printf("The file %s was opened.\n", event->name);
           if (
-            name[strlen(name) - 1] == 'f' && name[strlen(name) - 2] == '.'
+            event->name[strlen(event->name) - 1] == 'f' && event->name[strlen(event->name) - 2] == '.'
           ) {
-            receiveFile(event->name);
+            char filename[80] = "test/";
+            strcat(filename, event->name);
+            receiveFile(filename);
           }
 
         }
