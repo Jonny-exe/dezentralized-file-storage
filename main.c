@@ -350,15 +350,6 @@ int receiveFile(char *originalFilename) {
   read_table(HASH_TABLE, hashtable, &lines);
   printf("After read_table\n"); 
 
-  server_t server = {0};
-  PORT = 8080;
-  err = (server.listen_fd = socket(AF_INET, SOCK_STREAM, 0));
-  perror("socket");
-  if (err == -1) {
-    perror("socket");
-    printf("client: Failed to create socket endpoint\n");
-    return err;
-  }
 
   char hashes[10][50];
   int hashIdx;
@@ -371,6 +362,16 @@ int receiveFile(char *originalFilename) {
   int bytes[hashIdx][64];
 
   for (i = 0; i < hashIdx; i++) {
+    server_t server = {0};
+    PORT = 8080;
+    err = (server.listen_fd = socket(AF_INET, SOCK_STREAM, 0));
+    perror("socket");
+    if (err == -1) {
+      perror("socket");
+      printf("client: Failed to create socket endpoint\n");
+      return err;
+    }
+
     err = server_connect(&server, LOCALHOST, PORT);
     if (err == -1) {
       perror("connect");
@@ -417,11 +418,14 @@ int receiveFile(char *originalFilename) {
     connection_close(server.listen_fd);
   }
 
-  char filename[100];
+  char filename[strlen(originalFilename) - 1];
   int j;
-  sprintf(filename, "%s.gz.cpt", originalFilename);
+  memcpy(filename, originalFilename, strlen(originalFilename) - 2);
+  filename[strlen(originalFilename) - 2] = '\0';
+  //sprintf(filename, "%s.gz.cpt", originalFilename);
+  printf("Filename: %s\n", filename);
   FILE *file = fopen(filename, "wb");
-  for (i = 0; i < times; i++) {
+  for (i = 0; i < hashIdx; i++) {
     for (j = 0; j < 64; j++)
       fputc(bytes[i][j], file);
   }
