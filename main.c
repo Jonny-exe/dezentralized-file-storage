@@ -53,6 +53,7 @@ int main(int argc, char *argv[]) {
         printf("File: %s\n", files[i]);
         handleFile(files[i], &server);
       }
+      connection_close(server.listen_fd);
       return 0;
     }
     
@@ -252,6 +253,8 @@ int handleFile(char *filename, server_t *server) {
   sprintf(command, "mv temp.gz '%s'",  filename);
   err = system(command);
 
+
+  /*
   FILE *file = fopen(filename, "rb");
 
   int size = getFileSize(file);
@@ -260,17 +263,29 @@ int handleFile(char *filename, server_t *server) {
   splitFile2Bytes(file, size, zip_bytes, times);
 
   fclose(file);
-
   unsigned char hashes[times][80];
   for (i = 0; i < times; i++) {
     hashFile(zip_bytes[i], 64, hashes[i]);
   }
+  */
+
   err = cryptFile("a random key", filename, "encrypt");
   if (err == -1)
     printf("Error encrypting file\n");
   strcat(filename, ".cpt");
   char file2Remove[100];
   strcpy(file2Remove, filename);
+
+  FILE *file = fopen(file2Remove, "rb");
+  int size = getFileSize(file);
+  int times = ceil((double)size / (double)64);
+  int bytes[times][256 / sizeof(int)];
+  splitFile2Bytes(file, size, bytes, times);
+
+  unsigned char hashes[times][80];
+  for (i = 0; i < times; i++) {
+    hashFile(bytes[i], 64, hashes[i]);
+  }
 
   createFile(filename);
   strcat(filename, ".f");
@@ -280,11 +295,6 @@ int handleFile(char *filename, server_t *server) {
   }
   fclose(file);
 
-  file = fopen(file2Remove, "rb");
-  size = getFileSize(file);
-  times = ceil((double)size / (double)64);
-  int bytes[times][256 / sizeof(int)];
-  splitFile2Bytes(file, size, bytes, times);
 
   int code, type = 1;
   err = write(server->listen_fd, &type, sizeof(int));
