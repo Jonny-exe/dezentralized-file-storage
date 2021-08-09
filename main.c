@@ -448,8 +448,10 @@ int receiveFile(char *originalFilename) {
   if (err == -1)
     printf("Error decrypting file\n");
 
-  sprintf(filename, "%s.gz", originalFilename);
-  err = uncompressFile(filename);
+  char zipfilename[strlen(filename) - 3];
+  memcpy(zipfilename, filename, strlen(filename) - 4);
+  zipfilename[strlen(filename) - 4] = '\0';
+  err = uncompressFile(zipfilename);
   if (err == -1) {
     printf("Error uncompressing file\n"); 
   }
