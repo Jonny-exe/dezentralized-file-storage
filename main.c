@@ -1,7 +1,7 @@
-#include "helpers.c"
 #include "hashtable.c"
+#include "helpers.c"
 #include "socket.c"
-#include <stdio.h> 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/inotify.h>
@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
     }
 
     printf("Argv: %s\n", argv[1]);
-    
+
     if (strcmp(argv[1], "send") == 0) {
       char files[100][MAX_FILENAME];
       int index, i;
@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
       connection_close(server.listen_fd);
       return 0;
     }
-    
+
     err = server_bind(&server, PORT);
     if (err == -1) {
       perror("bind");
@@ -84,9 +84,9 @@ int main(int argc, char *argv[]) {
       }
 
       int zero = 0, type = 0, i;
-      // Type: the type of connection. 
+      // Type: the type of connection.
       //
-      // 0 = request for some file. 
+      // 0 = request for some file.
       // 1 = request to store files on this pc
 
       err = read(conn_fd, &type, sizeof(int));
@@ -95,7 +95,6 @@ int main(int argc, char *argv[]) {
         printf("client: Failed reading message\n");
         return err;
       }
-      printf("TYPE: %d\n", type);
       if (type == 1) {
         int times;
         err = read(conn_fd, &times, sizeof(times));
@@ -118,7 +117,6 @@ int main(int argc, char *argv[]) {
           perror("mkdir");
         }
 
-        printf("Times: %d\n", times);
         for (i = 0; i < times; i++) {
           char hash[80];
           int bytes[64];
@@ -128,7 +126,6 @@ int main(int argc, char *argv[]) {
             printf("server: Failed reading message\n");
             return err;
           }
-          printf("Hash: %s, %d\n", hash, err);
 
           err = write(conn_fd, &zero, sizeof(int));
           if (err == -1) {
@@ -175,7 +172,6 @@ int main(int argc, char *argv[]) {
           printf("client: Failed reading message\n");
           return err;
         }
-        printf("The hash is: %s\n", hash);
 
         char filename[60] = OTHERS_FILES;
         strcat(filename, hash);
@@ -210,8 +206,6 @@ int main(int argc, char *argv[]) {
         times = ceil((double)size / (double)64);
         splitFile2Bytes(file, size, bytes, times);
         err = write(conn_fd, bytes[0], 256);
-        for (int i = 0; i < 64; i++)
-          printf("BYTES:: %d\n", bytes[0][i]);
         if (err == -1)
           printf("Error sending bytes\n");
         connection_close(conn_fd);
@@ -239,8 +233,6 @@ int createFakeTree(char files[MAX_FILENAME][100], int size) {
 int handleFile(char *filename, server_t *server) {
   int err, i;
   char command[100];
-  //sprintf(command, "mv '%s' temp",  filename);
-  //err = system(command);
   err = rename(filename, "temp");
   if (err == -1)
     printf("Error moving file\n");
@@ -249,10 +241,8 @@ int handleFile(char *filename, server_t *server) {
   if (err == -1)
     printf("Error compressing file\n");
   strcat(filename, ".gz");
-  printf("Move: %s\n", filename);
-  sprintf(command, "mv temp.gz '%s'",  filename);
+  sprintf(command, "mv temp.gz '%s'", filename);
   err = system(command);
-
 
   /*
   FILE *file = fopen(filename, "rb");
@@ -290,11 +280,10 @@ int handleFile(char *filename, server_t *server) {
   createFile(filename);
   strcat(filename, ".f");
   file = fopen(filename, "w");
-  for (i = 0; i < times; i++) {
+  for (i = 0; i < times; i++)
     fprintf(file, "%s\n", hashes[i]);
-  }
-  fclose(file);
 
+  fclose(file);
 
   int code, type = 1;
   err = write(server->listen_fd, &type, sizeof(int));
@@ -314,15 +303,14 @@ int handleFile(char *filename, server_t *server) {
     perror("read");
     printf("client: Failed reading message\n");
     return err;
-    }
+  }
   for (i = 0; i < times; i++) {
-    // Steps: 
+    // Steps:
     // 1. Send times
     // 2. Send hash
     // 3. Send bytes
     // 4. Repeat 2 and 3 for times
 
-    printf("Hash: %s\n", hashes[i]);
     err = write(server->listen_fd, hashes[i], sizeof(hashes[i]));
     if (err == -1) {
       perror("write");
@@ -350,36 +338,27 @@ int handleFile(char *filename, server_t *server) {
       return err;
     }
   }
-  //remove(file2Remove);
+  remove(file2Remove);
   return 0;
 }
 
 int receiveFile(char *originalFilename) {
-  //FIXME: this function doesn't work
+  // FIXME: this function doesn't work
   int times, lines, err, PORT, i;
-   
-  printf("Original name: %s\n", originalFilename);
-  printf("Before read_table\n"); 
   row_t hashtable[200];
   read_table(HASH_TABLE, hashtable, &lines);
-  printf("After read_table\n"); 
-
 
   char hashes[10][50];
   int hashIdx;
   int zero = 0;
   int type = 0;
-  printf("Before hashes\n");
   hashesFromFile(originalFilename, hashes, &hashIdx);
-  printf("Hashes from file: %s\n", hashes[0]);
-  printf("Hashes from file: %s, %d\n", hashes[1], hashIdx);
   int bytes[hashIdx][64];
 
   for (i = 0; i < hashIdx; i++) {
     server_t server = {0};
     PORT = 8080;
     err = (server.listen_fd = socket(AF_INET, SOCK_STREAM, 0));
-    perror("socket");
     if (err == -1) {
       perror("socket");
       printf("client: Failed to create socket endpoint\n");
@@ -390,7 +369,7 @@ int receiveFile(char *originalFilename) {
     if (err == -1) {
       perror("connect");
     }
-    //TODO: make if one connection doens't work to try another one
+    // TODO: make if one connection doens't work to try another one
 
     err = write(server.listen_fd, &type, sizeof(int));
     if (err == -1) {
@@ -411,7 +390,7 @@ int receiveFile(char *originalFilename) {
       perror("read");
       printf("Error reading code or incorrect code\n");
       return err;
-      //TODO: here in theory just try another ip
+      // TODO: here in theory just try another ip
     }
 
     err = write(server.listen_fd, &zero, sizeof(int));
@@ -427,8 +406,6 @@ int receiveFile(char *originalFilename) {
       printf("Error reading bytes\n");
     }
 
-    for(int j = 0; j < 64; j++)
-      printf("Bytes: %d\n", bytes[i][j]);
     connection_close(server.listen_fd);
   }
 
@@ -436,7 +413,6 @@ int receiveFile(char *originalFilename) {
   int j;
   memcpy(filename, originalFilename, strlen(originalFilename) - 2);
   filename[strlen(originalFilename) - 2] = '\0';
-  printf("Filename: %s\n", filename);
   FILE *file = fopen(filename, "wb");
   for (i = 0; i < hashIdx; i++) {
     for (j = 0; j < 64; j++)
@@ -453,7 +429,7 @@ int receiveFile(char *originalFilename) {
   zipfilename[strlen(filename) - 4] = '\0';
   err = uncompressFile(zipfilename);
   if (err == -1) {
-    printf("Error uncompressing file\n"); 
+    printf("Error uncompressing file\n");
   }
   return 0;
 }
@@ -471,7 +447,8 @@ int listenFolder(char *dirname) {
     if (fd < 0) {
       perror("inotify_init");
     }
-    wd = inotify_add_watch(fd, dirname, IN_MODIFY | IN_CREATE | IN_DELETE | IN_ACCESS | IN_OPEN);
+    wd = inotify_add_watch(
+        fd, dirname, IN_MODIFY | IN_CREATE | IN_DELETE | IN_ACCESS | IN_OPEN);
     length = read(fd, buffer, BUF_LEN);
 
     if (length < 0) {
@@ -489,18 +466,16 @@ int listenFolder(char *dirname) {
           printf("The file %s was modified.\n", event->name);
         } else if (event->mask & IN_ACCESS) {
           printf("The file %s was accessed.\n", event->name);
-          if (
-            event->name[strlen(event->name) - 1] == 'f' && event->name[strlen(event->name) - 2] == '.'
-          ) {
+          if (event->name[strlen(event->name) - 1] == 'f' &&
+              event->name[strlen(event->name) - 2] == '.') {
             char filename[80] = "test/";
             strcat(filename, event->name);
             receiveFile(filename);
           }
         } else if (event->mask & IN_OPEN) {
           printf("The file %s was opened.\n", event->name);
-          if (
-            event->name[strlen(event->name) - 1] == 'f' && event->name[strlen(event->name) - 2] == '.'
-          ) {
+          if (event->name[strlen(event->name) - 1] == 'f' &&
+              event->name[strlen(event->name) - 2] == '.') {
             char filename[80] = "test/";
             strcat(filename, event->name);
             receiveFile(filename);
