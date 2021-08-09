@@ -34,7 +34,6 @@ int main(int argc, char *argv[]) {
     printf("Argv: %s\n", argv[1]);
     
     if (strcmp(argv[1], "send") == 0) {
-      return 0;
       char files[100][MAX_FILENAME];
       int index, i;
 
@@ -54,6 +53,7 @@ int main(int argc, char *argv[]) {
         printf("File: %s\n", files[i]);
         handleFile(files[i], &server);
       }
+      return 0;
     }
     
     err = server_bind(&server, PORT);
@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
         return err;
       }
 
-      int i = 0, type = 0;
+      int zero = 0, type = 0, i;
       // Type: the type of connection. 
       //
       // 0 = request for some file. 
@@ -104,14 +104,13 @@ int main(int argc, char *argv[]) {
           return err;
         }
 
-        err = write(conn_fd, &i, sizeof(int));
+        err = write(conn_fd, &zero, sizeof(int));
         if (err == -1) {
           perror("write");
           printf("client: Failed writting message\n");
           return err;
         }
 
-        int zero = 0;
         err = mkdir("tempdir/", 0777);
         if (err == -1) {
           printf("Error creating temp dir\n");
@@ -160,7 +159,7 @@ int main(int argc, char *argv[]) {
           fclose(file);
         }
 
-        printf("Close");
+        printf("Close\n");
         err = connection_close(conn_fd);
         if (err == -1) {
           perror("close");
@@ -216,7 +215,6 @@ int main(int argc, char *argv[]) {
           printf("Error sending bytes\n");
         connection_close(conn_fd);
       }
-
     }
   } else {
     // Handle the file listening
@@ -258,14 +256,14 @@ int handleFile(char *filename, server_t *server) {
 
   int size = getFileSize(file);
   int times = ceil((double)size / (double)64);
-  int bytes[times][256 / sizeof(int)];
-  splitFile2Bytes(file, size, bytes, times);
+  int zip_bytes[times][256 / sizeof(int)];
+  splitFile2Bytes(file, size, zip_bytes, times);
 
   fclose(file);
 
   unsigned char hashes[times][80];
   for (i = 0; i < times; i++) {
-    hashFile(bytes[i], 64, hashes[i]);
+    hashFile(zip_bytes[i], 64, hashes[i]);
   }
   err = cryptFile("a random key", filename, "encrypt");
   if (err == -1)
@@ -281,6 +279,12 @@ int handleFile(char *filename, server_t *server) {
     fprintf(file, "%s\n", hashes[i]);
   }
   fclose(file);
+
+  file = fopen(file2Remove, "rb");
+  size = getFileSize(file);
+  times = ceil((double)size / (double)64);
+  int bytes[times][256 / sizeof(int)];
+  splitFile2Bytes(file, size, bytes, times);
 
   int code, type = 1;
   err = write(server->listen_fd, &type, sizeof(int));
@@ -336,7 +340,7 @@ int handleFile(char *filename, server_t *server) {
       return err;
     }
   }
-  remove(file2Remove);
+  //remove(file2Remove);
   return 0;
 }
 
@@ -393,7 +397,7 @@ int receiveFile(char *originalFilename) {
     }
 
     err = read(server.listen_fd, &zero, sizeof(int));
-    if (err == -1 || zero != 0) {
+    if (err == -1) {
       perror("read");
       printf("Error reading code or incorrect code\n");
       return err;
@@ -422,7 +426,6 @@ int receiveFile(char *originalFilename) {
   int j;
   memcpy(filename, originalFilename, strlen(originalFilename) - 2);
   filename[strlen(originalFilename) - 2] = '\0';
-  //sprintf(filename, "%s.gz.cpt", originalFilename);
   printf("Filename: %s\n", filename);
   FILE *file = fopen(filename, "wb");
   for (i = 0; i < hashIdx; i++) {
@@ -490,9 +493,7 @@ int listenFolder(char *dirname) {
             strcat(filename, event->name);
             receiveFile(filename);
           }
-
         }
-
       }
       i += EVENT_SIZE + event->len;
     }
