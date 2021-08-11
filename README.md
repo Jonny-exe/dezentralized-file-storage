@@ -7,8 +7,6 @@ This is a decentralized file storage system
 INIT FILES
 ----
   - [x] Read all files
-  - [ ] Create list of files and their destination 
-  (ASK HOW THE HELL THE NETWORK SHOULD WORK)
   - [ ] Create some initial users list to spread the message
   - [x] Create a hash for each file dependent on its content
 
@@ -46,7 +44,7 @@ SERVER CONNECTION
 PROCESSES
 ----
   - [ ] Read all the files:
-    - [ ] Compress, encrypt, split and hash
+    - [x] Compress, encrypt, split and hash
     - [ ] Make a list of those hashes in a file
   - [ ] Start TCP server and listen for requests
     - [ ] When a request for a file comes in:
@@ -63,6 +61,6 @@ DO NOW
 ----
   - [x] Full function to handle entire file: 
   (compress, encrypt, split, hash)
-  - [ ] Fix hashing function
-  - [ ] Write function to send a group of bytes
+  - [x] Fix hashing function
+  - [x] Write function to send a group of bytes
   - [ ] Some not read all the files at once.
