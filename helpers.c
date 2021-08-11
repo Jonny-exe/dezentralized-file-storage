@@ -141,7 +141,7 @@ int compressFile(char *filename) {
 int uncompressFile(char *filename) {
   char command[100];
   int result;
-  sprintf(command, "gunzip %s", filename);
+  sprintf(command, "gunzip -f '%s'", filename);
   result = system(command);
   return result;
 }
@@ -165,9 +165,7 @@ int removeFile(char *filename) {
 }
 
 
-void hashesFromFile(char *filename, char *hashes, int *hashIdx) {
-  printf("Filename: %s\n", filename);
-  FILE *file = fopen(filename, "r");
+void hashesFromFile(FILE *file, char *hashes, int *hashIdx) {
   if (file == NULL) {
     printf("File does not exist\n");
     return;

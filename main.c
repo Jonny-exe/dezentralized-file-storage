@@ -343,16 +343,17 @@ int handleFile(char *filename, server_t *server) {
 }
 
 int receiveFile(char *originalFilename) {
-  // FIXME: this function doesn't work
-  int times, lines, err, PORT, i;
+  int lines, err, PORT, i;
   row_t hashtable[200];
   read_table(HASH_TABLE, hashtable, &lines);
 
-  char hashes[10][50];
   int hashIdx;
   int zero = 0;
   int type = 0;
-  hashesFromFile(originalFilename, hashes, &hashIdx);
+  FILE *file = fopen(originalFilename, "r");
+  int size = getFileSize(file);
+  char hashes[size / 41][50];
+  hashesFromFile(file, hashes, &hashIdx);
   int bytes[hashIdx][64];
 
   for (i = 0; i < hashIdx; i++) {
@@ -413,7 +414,7 @@ int receiveFile(char *originalFilename) {
   int j;
   memcpy(filename, originalFilename, strlen(originalFilename) - 2);
   filename[strlen(originalFilename) - 2] = '\0';
-  FILE *file = fopen(filename, "wb");
+  file = fopen(filename, "wb");
   for (i = 0; i < hashIdx; i++) {
     for (j = 0; j < 64; j++)
       fputc(bytes[i][j], file);
