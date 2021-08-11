@@ -27,7 +27,7 @@ void hashFile(int *bytes, int bytesSize, unsigned char *hash);
 int tests();
 int createFile(char *filename);
 int removeFile(char *filename);
-void hashesFromFile(char *filename, char *hashes, int *hashIdx);
+void hashesFromFile(FILE *file, char *hashes, int *hashIdx);
 
 void readFolderFiles(char *dirname, char files[100][MAX_FILENAME], int *index) {
   DIR *folder;

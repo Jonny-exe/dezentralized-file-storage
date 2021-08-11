@@ -143,7 +143,6 @@ int hash_exists(row_t *table, char *hash, int lines) {
 
 int insert_row(row_t *table, char *new_key, char *new_value, int *lines) {
   int err;
-  int line;
 
   err = -1;
   if (hash_exists(table, new_key, *lines) == -1) {
