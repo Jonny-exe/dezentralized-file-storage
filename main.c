@@ -156,6 +156,14 @@ int main(int argc, char *argv[]) {
           return err;
         }
       } else if (type == 0) {
+        int depth;
+        err = read(conn_fd, &depth, sizeof(int));
+        if (err == -1) {
+          perror("read");
+          printf("client: Failed reading depth\n");
+          return err;
+        }
+
         char hash[40];
         err = read(conn_fd, &hash, sizeof(hash));
         if (err == -1) {
@@ -174,7 +182,40 @@ int main(int argc, char *argv[]) {
             printf("client: Failed writting message\n");
             return err;
           }
-          printf("Don't have the file. Leaving connection\n");
+          
+          if (depth == 10) {
+            // Return error and exit
+            break;
+          }
+
+          row_t hashtable[200];
+          read_table(HASH_TABLE, hashtable, &lines);
+          int length = sizeof(hashtable) / sizeof(row_t)
+
+          for (int j = 0; j < length; j++) {
+            server_t newServer = {0};
+            PORT = 8080;
+            err = (server.listen_fd = socket(AF_INET, SOCK_STREAM, 0));
+            if (err == -1) {
+              perror("socket");
+              printf("client: Failed to create socket endpoint\n");
+              return err;
+            }
+
+            err = server_connect(&server, hashtable[i], PORT);
+            if (err == -1) {
+              perror("connect");
+            }
+            err = write(server.listen_fd, &type, sizeof(int));
+            if (err == -1) {
+              perror("write");
+              printf("client: Failed writting message\n");
+              return err;
+            }
+
+
+          }
+
           break;
         }
         i = 0; // Everything OK, I have the file
@@ -206,41 +247,6 @@ int main(int argc, char *argv[]) {
 
         sleep(2); //FIXME: make it so this is not needed
         connection_close(conn_fd);
-      } else if (type == 2) {
-        int depth, IPSize;
-        char hash[40];
-        err = read(conn_fd, &depth, sizeof(int));
-        if (err == -1) {
-          perror("read");
-          printf("Error reading depth\n");
-        }
-
-        err = read(conn_fd, hash, sizeof(hash));
-        if (err == -1) {
-          perror("read");
-          printf("Error reading hash\n");
-        }
-
-        err = read(conn_fd, &IPSize, sizeof(int));
-        if (err == -1) {
-          perror("read");
-          printf("Error reading IPSize\n");
-        }
-        char originIP[IPSize];
-        err = read(conn_fd, originIP, IPSize);
-        if (err == -1) {
-          perror("read");
-          printf("Error reading originIP\n");
-        }
-        connection_close(conn_fd);
-
-        char filename[60] = OTHERS_FILES;
-        strcat(filename, hash);
-        if (access(filename, F_OK) == 0) {
-          // Send file to originIP
-        } else {
-          // connectToPeers with depth++
-        }
       }
     }
   } else {
@@ -523,52 +529,3 @@ int listenFolder(char *dirname) {
 
   return 0;
 }
-
-int connectToPeer(char *originIP, char *hash, int depth, int hashSize, int IPSize) {
-  int type = 2, PORT = 8080, err;
-  server_t server = {0};
-  err = (server.listen_fd = socket(AF_INET, SOCK_STREAM, 0));
-  if (err == -1) {
-    perror("socket");
-    printf("client: Failed to create socket endpoint\n");
-    return err;
-  }
-
-  err = server_connect(&server, LOCALHOST, PORT);
-  if (err == -1) {
-    perror("connect");
-    printf("Error connecting\n");
-  }
-
-  err = write(server.listen_fd, &type, sizeof(int));
-  if (err == -1) {
-    perror("write");
-    printf("client: Failed writting type\n");
-  }
-
-  err = write(server.listen_fd, &depth, sizeof(int));
-  if (err == -1) {
-    perror("write");
-    printf("client: Failed writting depth\n");
-  }
-
-  err = write(server.listen_fd, hash, hashSize);
-  if (err == -1) {
-    perror("write");
-    printf("client: Failed writting hash\n");
-  }
-
-  err = write(server.listen_fd, IPSize, sizeof(int));
-  if (err == -1) {
-    perror("write");
-    printf("client: Failed writting hash\n");
-  }
-
-  err = write(server.listen_fd, originIP, IPSize);
-  if (err == -1) {
-    perror("write");
-    printf("client: Failed writting hash\n");
-  }
-  connection_close(server.listen_fd);
-  return 0;
-} 
