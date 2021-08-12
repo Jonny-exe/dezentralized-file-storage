@@ -64,6 +64,7 @@ int main(int argc, char *argv[]) {
     while (1) {
       int conn_fd;
       puts("Waiting to accept");
+      char IPAddr[20];
       err = server_accept(&server, &conn_fd);
       if (err == -1) {
         perror("accept");
@@ -188,34 +189,29 @@ int main(int argc, char *argv[]) {
             break;
           }
 
-          row_t hashtable[200];
-          read_table(HASH_TABLE, hashtable, &lines);
-          int length = sizeof(hashtable) / sizeof(row_t)
-
-          for (int j = 0; j < length; j++) {
-            server_t newServer = {0};
-            PORT = 8080;
-            err = (server.listen_fd = socket(AF_INET, SOCK_STREAM, 0));
-            if (err == -1) {
-              perror("socket");
-              printf("client: Failed to create socket endpoint\n");
-              return err;
-            }
-
-            err = server_connect(&server, hashtable[i], PORT);
-            if (err == -1) {
-              perror("connect");
-            }
-            err = write(server.listen_fd, &type, sizeof(int));
-            if (err == -1) {
-              perror("write");
-              printf("client: Failed writting message\n");
-              return err;
-            }
-
-
+          int IPSize = 20, result;
+          char originIP[IPSize];
+          char location[100];
+          err = read(conn_fd, originIP, IPSize);
+          if (err == -1) {
+            perror("read");
+            printf("Error reading IPSize\n");
           }
 
+          result = searchFileLocation(originIP, IPSize, hash, location);
+          err = write(conn_fd, &result, sizeof(int));
+          if (err == -1) {
+            perror("write");
+            printf("Error writing result\n");
+          }
+
+          if (result) {
+            write(conn_fd, location, 100);
+            if (err == -1) {
+              perror("write");
+              printf("Error writing location\n");
+            }
+          }
           break;
         }
         i = 0; // Everything OK, I have the file
