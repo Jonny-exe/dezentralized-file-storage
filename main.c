@@ -569,6 +569,6 @@ int connectToPeer(char *originIP, char *hash, int depth, int hashSize, int IPSiz
     perror("write");
     printf("client: Failed writting hash\n");
   }
-  close_connection(server.listen_fd);
+  connection_close(server.listen_fd);
   return 0;
 } 
