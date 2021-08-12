@@ -1,6 +1,7 @@
 #include "hashtable.c"
 #include "helpers.c"
 #include "socket.c"
+#include "network.c"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,7 +23,6 @@ int main(int argc, char *argv[]) {
   if (fork() == 0) {
     // Handle all the initial files and the TCP server
     int PORT = atoi(argv[2]);
-    printf("Argv: %s\n", argv[1]);
 
     if (strcmp(argv[1], "send") == 0) {
       char files[100][MAX_FILENAME];
@@ -64,7 +64,6 @@ int main(int argc, char *argv[]) {
     while (1) {
       int conn_fd;
       puts("Waiting to accept");
-      char IPAddr[20];
       err = server_accept(&server, &conn_fd);
       if (err == -1) {
         perror("accept");
@@ -77,8 +76,13 @@ int main(int argc, char *argv[]) {
       int zero = 0, type = 0, i;
       // Type: the type of connection.
       //
-      // 0 = request for some file.
+      // 0 = request to find a file.
       // 1 = request to store files on this pc
+      // 2 = request to get a file
+      //
+      // Code:
+      // 0 = don't have the file
+      // 1 = have the file
 
       err = read(conn_fd, &type, sizeof(int));
       if (err == -1) {
@@ -157,7 +161,7 @@ int main(int argc, char *argv[]) {
           return err;
         }
       } else if (type == 0) {
-        int depth;
+        int depth, code = 0;
         err = read(conn_fd, &depth, sizeof(int));
         if (err == -1) {
           perror("read");
@@ -176,58 +180,68 @@ int main(int argc, char *argv[]) {
         char filename[60] = OTHERS_FILES;
         strcat(filename, hash);
         if (access(filename, F_OK) != 0) {
-          i = 1; // Don't have the file
-          err = write(conn_fd, &i, sizeof(int));
-          if (err == -1) {
-            perror("write");
-            printf("client: Failed writting message\n");
-            return err;
-          }
-          
+          // Don't have the file
           if (depth == 10) {
             // Return error and exit
+            err = write(conn_fd, &code, sizeof(int));
+            if (err == -1) {
+              perror("write");
+              printf("Error writing result\n");
+            }
             break;
           }
 
-          int IPSize = 20, result;
-          char originIP[IPSize];
-          char location[100];
-          err = read(conn_fd, originIP, IPSize);
-          if (err == -1) {
-            perror("read");
-            printf("Error reading IPSize\n");
-          }
-
-          result = searchFileLocation(originIP, IPSize, hash, location);
-          err = write(conn_fd, &result, sizeof(int));
+          char location[20];
+          code = searchFileLocation(hash, location);
+          err = write(conn_fd, &code, sizeof(int));
           if (err == -1) {
             perror("write");
             printf("Error writing result\n");
           }
 
-          if (result) {
+          if (code) {
             write(conn_fd, location, 100);
             if (err == -1) {
               perror("write");
               printf("Error writing location\n");
             }
           }
-          break;
+          continue;
         }
-        i = 0; // Everything OK, I have the file
-        err = write(conn_fd, &i, sizeof(int));
+        code = 1; // Everything OK, I have the file
+        err = write(conn_fd, &code, sizeof(int));
         if (err == -1) {
           perror("write");
           printf("client: Failed writting message\n");
           return err;
         }
 
-        err = read(conn_fd, &i, sizeof(int));
-        if (err == -1 || i != 0) {
+        //TODO: somehow find IP addr
+        char ip[20] = "My iP";
+        err = write(conn_fd, ip, 20);
+        if (err == -1) {
+          perror("write");
+          printf("client: Failed writting message\n");
+          return err;
+        }
+        connection_close(conn_fd);
+      } else if (type == 2) {
+        int code = 1;
+        char hash[41];
+        err = read(conn_fd, hash, 41);
+        if (err == -1) {
           perror("read");
-          printf("Error reading code\n");
+          printf("Error reading hash\n");
         }
 
+        char filename[60] = OTHERS_FILES;
+        strcat(filename, hash);
+        if (access(filename, F_OK) != 0) {
+          code = 0;
+          write(conn_fd, code, sizeof(int));
+          continue;
+        }
+        write(conn_fd, &code, sizeof(int));
         int bytes[64];
         int times, size;
         FILE *file = fopen(filename, "rb");
@@ -379,74 +393,30 @@ int handleFile(char *filename) {
 }
 
 int receiveFile(char *originalFilename) {
-  int lines, err, PORT, i;
+  int lines, err, i;
   row_t hashtable[200];
   read_table(HASH_TABLE, hashtable, &lines);
 
-  int hashIdx;
-  int zero = 0;
-  int type = 0;
+  int hashIdx, size;
   FILE *file = fopen(originalFilename, "r");
-  int size = getFileSize(file);
+  size = getFileSize(file);
   char hashes[size / 41][50];
   hashesFromFile(file, hashes, &hashIdx);
   int bytes[hashIdx][64];
-
+  
   for (i = 0; i < hashIdx; i++) {
-    server_t server = {0};
-    PORT = 8080;
-    err = (server.listen_fd = socket(AF_INET, SOCK_STREAM, 0));
+    char location[20];
+    int result = searchFileLocation(hashes[i], location);
+    if (result != 1) {
+      printf("No file found\n");
+      return -1;
+    }
+
+    err = askForBytes(location, hashes[i], bytes[i], 64);
     if (err == -1) {
-      perror("socket");
-      printf("client: Failed to create socket endpoint\n");
-      return err;
+      printf("Error asking for Bytes");
+      return -1;
     }
-
-    err = server_connect(&server, LOCALHOST, PORT);
-    if (err == -1) {
-      perror("connect");
-    }
-    // TODO: make if one connection doens't work to try another one
-
-    err = write(server.listen_fd, &type, sizeof(int));
-    if (err == -1) {
-      perror("write");
-      printf("client: Failed writting message\n");
-      return err;
-    }
-
-    printf("%s\n", hashes[i]);
-    err = write(server.listen_fd, hashes[i], 40);
-    if (err == -1) {
-      perror("write");
-      printf("client: Failed writting message\n");
-      return err;
-    }
-
-    err = read(server.listen_fd, &zero, sizeof(int));
-    if (err == -1 || zero == 1) {
-      perror("read");
-      printf("Error reading code or does't have file\n");
-      return err;
-      // TODO: here in theory just try another ip
-    }
-
-    err = write(server.listen_fd, &zero, sizeof(int));
-    if (err == -1) {
-      perror("write");
-      printf("client: Failed writting message\n");
-      return err;
-    }
-
-    err = read(server.listen_fd, bytes[i], 256);
-    for (int j = 0; j < 64; j++)
-      printf("B: %d\n", bytes[i][j]);
-    if (err == -1) {
-      perror("read");
-      printf("Error reading bytes\n");
-    }
-
-    connection_close(server.listen_fd);
   }
 
   char filename[strlen(originalFilename) - 1];

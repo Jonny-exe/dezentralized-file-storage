@@ -29,7 +29,6 @@ int server_accept(server_t *server, int *connection_fd) {
   err = (conn_fd = accept(server->listen_fd, (struct sockaddr *)&client_addr,
                           &client_len));
   *connection_fd = conn_fd;
-
   return err;
 }
 
