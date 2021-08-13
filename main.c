@@ -263,7 +263,7 @@ int main(int argc, char *argv[]) {
         else
           printf("Sent bytes\n");
 
-        sleep(2); //FIXME: make it so this is not needed
+        //sleep(2); //FIXME: make it so this is not needed
         connection_close(conn_fd);
       }
     }
