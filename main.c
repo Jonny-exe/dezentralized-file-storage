@@ -112,6 +112,7 @@ int main(int argc, char *argv[]) {
           printf("Error creating temp dir\n");
           err = 0;
         }
+        printf("Times: %d\n", times);
 
         for (i = 0; i < times; i++) {
           char hash[80];
@@ -181,6 +182,7 @@ int main(int argc, char *argv[]) {
         strcat(filename, hash);
         if (access(filename, F_OK) != 0) {
           // Don't have the file
+          printf("Don't have the file\n");
           if (depth == 10) {
             // Return error and exit
             err = write(conn_fd, &code, sizeof(int));
@@ -217,7 +219,7 @@ int main(int argc, char *argv[]) {
         }
 
         //TODO: somehow find IP addr
-        char ip[20] = "My iP";
+        char ip[20] = "127.0.0.1";
         err = write(conn_fd, ip, 20);
         if (err == -1) {
           perror("write");
@@ -236,11 +238,17 @@ int main(int argc, char *argv[]) {
 
         char filename[60] = OTHERS_FILES;
         strcat(filename, hash);
+        printf("filename: %s\n", filename);
         if (access(filename, F_OK) != 0) {
           code = 0;
-          write(conn_fd, code, sizeof(int));
+          err = write(conn_fd, &code, sizeof(int));
+          if (err == -1) {
+            perror("write");
+            printf("Error writing code\n");
+          }
           continue;
         }
+        printf("Got the file\n");
         write(conn_fd, &code, sizeof(int));
         int bytes[64];
         int times, size;
@@ -400,7 +408,7 @@ int receiveFile(char *originalFilename) {
   int hashIdx, size;
   FILE *file = fopen(originalFilename, "r");
   size = getFileSize(file);
-  char hashes[size / 41][50];
+  char hashes[size / 41][41];
   hashesFromFile(file, hashes, &hashIdx);
   int bytes[hashIdx][64];
   
@@ -412,11 +420,14 @@ int receiveFile(char *originalFilename) {
       return -1;
     }
 
-    err = askForBytes(location, hashes[i], bytes[i], 64);
+    printf("Location: %s\n", location);
+    printf("Hash: %s\n", hashes[i]);
+    err = askForBytes(location, hashes[i], bytes[i]);
     if (err == -1) {
       printf("Error asking for Bytes");
       return -1;
     }
+    printf("Got bytes\n");
   }
 
   char filename[strlen(originalFilename) - 1];

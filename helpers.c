@@ -176,11 +176,12 @@ void hashesFromFile(FILE *file, char *hashes, int *hashIdx) {
   int ch;
   while((ch = fgetc(file)) != EOF) {
     if (ch == '\n') {
+      hashes[hsIdx * 41 + idx] = '\0';
       idx = 0;
       hsIdx++;
       continue;
     }
-    hashes[hsIdx * 50 + idx] = ch;
+    hashes[hsIdx * 41 + idx] = ch;
     idx++;
   }
   

@@ -1,6 +1,9 @@
 int searchFileLocation(char *fileHash, char *location);
 int connectToPeer(char *targetIP, char *hash, char *location);
-int askForBytes(char *ip, char *hash, int *bytes, int bytesSize);
+int askForBytes(char *ip, char *hash, int *bytes);
+
+
+
 int searchFileLocation(char *fileHash, char *location) {
   int length;
   row_t hashtable[200];
@@ -19,7 +22,8 @@ int searchFileLocation(char *fileHash, char *location) {
 
 
 int connectToPeer(char *targetIP, char *hash, char *location) {
-  int type = 1, PORT = 8080, depth = 0, err;
+  int type = 0, PORT = 8080, depth = 0, err;
+  printf("Target IP %s\n", targetIP);
   server_t server = {0};
   err = (server.listen_fd = socket(AF_INET, SOCK_STREAM, 0));
   if (err == -1) {
@@ -70,7 +74,7 @@ int connectToPeer(char *targetIP, char *hash, char *location) {
   return code;
 } 
 
-int askForBytes(char *ip, char *hash, int *bytes, int bytesSize) {
+int askForBytes(char *ip, char *hash, int *bytes) {
   int type = 2, PORT = 8080, err, code;
   server_t server = {0};
   err = (server.listen_fd = socket(AF_INET, SOCK_STREAM, 0));
@@ -92,11 +96,12 @@ int askForBytes(char *ip, char *hash, int *bytes, int bytesSize) {
     printf("client: Failed writting type\n");
   }
 
-  err = write(server.listen_fd, &hash, 41);
+  err = write(server.listen_fd, hash, 41);
   if (err == -1) {
     perror("write");
     printf("client: Failed writting type\n");
   }
+  printf("Hash: %s\n", hash);
 
   err = read(server.listen_fd, &code, sizeof(int));
   if (err == -1) {
@@ -107,7 +112,10 @@ int askForBytes(char *ip, char *hash, int *bytes, int bytesSize) {
   if (code == 0)
     printf("Doesn't have file");
 
-  err = read(server.listen_fd, bytes, bytesSize);
+  err = read(server.listen_fd, bytes, 256);
+  for (int i = 0; i < 64; i++) {
+    printf("b: %d\n", bytes[i]);
+  }
   connection_close(server.listen_fd);
   return 0;
 }
