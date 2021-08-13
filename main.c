@@ -99,13 +99,6 @@ int main(int argc, char *argv[]) {
           return err;
         }
 
-        err = write(conn_fd, &zero, sizeof(int));
-        if (err == -1) {
-          perror("write");
-          printf("client: Failed writting message\n");
-          return err;
-        }
-
         err = mkdir("tempdir/", 0777);
         if (err == -1) {
           perror("mkdir");
@@ -124,24 +117,10 @@ int main(int argc, char *argv[]) {
             return err;
           }
 
-          err = write(conn_fd, &zero, sizeof(int));
-          if (err == -1) {
-            perror("write");
-            printf("server: Failed writting message\n");
-            return err;
-          }
-
           err = read(conn_fd, bytes, 256);
           if (err == -1) {
             perror("read");
             printf("server: Failed reading message\n");
-            return err;
-          }
-
-          err = write(conn_fd, &zero, sizeof(int));
-          if (err == -1) {
-            perror("write");
-            printf("server: Failed writting message\n");
             return err;
           }
 
@@ -263,7 +242,6 @@ int main(int argc, char *argv[]) {
         else
           printf("Sent bytes\n");
 
-        //sleep(2); //FIXME: make it so this is not needed
         connection_close(conn_fd);
       }
     }
@@ -355,12 +333,6 @@ int handleFile(char *filename) {
     printf("client: Failed writting message\n");
   }
 
-  err = read(server.listen_fd, &code, sizeof(code));
-  if (err == -1 && code == 0) {
-    perror("read");
-    printf("client: Failed reading message\n");
-    return err;
-  }
   for (i = 0; i < times; i++) {
     // Steps:
     // 1. Send times
@@ -373,25 +345,10 @@ int handleFile(char *filename) {
       perror("write");
       printf("client: Failed writting message\n");
     }
-
-    err = read(server.listen_fd, &code, sizeof(code));
-    if (err == -1) {
-      perror("read");
-      printf("client: Failed reading message\n");
-      return err;
-    }
-
     err = write(server.listen_fd, bytes[i], sizeof(bytes[i]));
     if (err == -1) {
       perror("write");
       printf("client: Failed writting message\n");
-      return err;
-    }
-
-    err = read(server.listen_fd, &code, sizeof(code));
-    if (err == -1 && code == 0) {
-      perror("read");
-      printf("client: Failed reading message\n");
       return err;
     }
   }
