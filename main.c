@@ -73,7 +73,7 @@ int main(int argc, char *argv[]) {
         printf("Accepted connection\n");
       }
 
-      int zero = 0, type = 0, i;
+      int type = 0, i;
       // Type: the type of connection.
       //
       // 0 = request to find a file.
@@ -304,7 +304,7 @@ int handleFile(char *filename) {
 
   fclose(file);
 
-  int code, type = 1;
+  int type = 1;
   int PORT = 8080;
   server_t server = {0};
 
