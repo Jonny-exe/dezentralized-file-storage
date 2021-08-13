@@ -117,7 +117,7 @@ int main(int argc, char *argv[]) {
         for (i = 0; i < times; i++) {
           char hash[80];
           int bytes[64];
-          err = read(conn_fd, hash, 80);
+          err = read(conn_fd, hash, 41);
           if (err == -1) {
             perror("read");
             printf("server: Failed reading message\n");
@@ -171,7 +171,7 @@ int main(int argc, char *argv[]) {
         }
 
         char hash[40];
-        err = read(conn_fd, &hash, sizeof(hash));
+        err = read(conn_fd, &hash, 41);
         if (err == -1) {
           perror("read");
           printf("client: Failed reading message\n");
@@ -182,7 +182,7 @@ int main(int argc, char *argv[]) {
         strcat(filename, hash);
         if (access(filename, F_OK) != 0) {
           // Don't have the file
-          printf("Don't have the file\n");
+          printf("Don't have the file, %s\n", filename);
           if (depth == 10) {
             // Return error and exit
             err = write(conn_fd, &code, sizeof(int));
@@ -312,7 +312,7 @@ int handleFile(char *filename) {
   int bytes[times][256 / sizeof(int)];
   splitFile2Bytes(file, size, bytes, times);
 
-  unsigned char hashes[times][80];
+  unsigned char hashes[times][41];
   for (i = 0; i < times; i++) {
     hashFile(bytes[i], 64, hashes[i]);
     printf("%s\n", hashes[i]);
@@ -368,7 +368,7 @@ int handleFile(char *filename) {
     // 3. Send bytes
     // 4. Repeat 2 and 3 for times
 
-    err = write(server.listen_fd, hashes[i], sizeof(hashes[i]));
+    err = write(server.listen_fd, hashes[i], 41);
     if (err == -1) {
       perror("write");
       printf("client: Failed writting message\n");
