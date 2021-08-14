@@ -150,7 +150,7 @@ int createFile(char *filename) {
   int err;
   char command[MAX_FILENAME * 3];
   sprintf(command,
-          "file=\"%s\" && mkdir -p \"${file%%/*}\" && touch \"$file.f\"",
+          "file=\"%s\" && mkdir -p \"${file%%/*}\" && touch \"$file\"",
           filename);
   err = system(command);
   return err;
