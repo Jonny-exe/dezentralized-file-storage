@@ -1,4 +1,5 @@
 int PORT = 8080;
+int BLOCK_SIZE = 1024 * 256 / sizeof(int);
 #include "hashtable.c"
 #include "helpers.c"
 #include "socket.c"
@@ -15,7 +16,6 @@ int PORT = 8080;
 #define LOCALHOST "127.0.0.1"
 #define BUF_LEN (1024 * (EVENT_SIZE + 16))
 
-
 int createFakeTree(char files[MAX_FILENAME][100], int size);
 int handleFile(char *filename);
 int listenFolder(char *dirname);
@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
   char dirname[100] = "./test";
   if (fork() == 0) {
     // Handle all the initial files and the TCP server
-    PORT =  atoi(argv[2]);
+    PORT = atoi(argv[2]);
 
     if (strcmp(argv[1], "send") == 0) {
       char files[100][MAX_FILENAME];
@@ -112,7 +112,7 @@ int main(int argc, char *argv[]) {
 
         for (i = 0; i < times; i++) {
           char hash[80];
-          int bytes[64];
+          int bytes[BLOCK_SIZE];
           err = read(conn_fd, hash, 41);
           if (err == -1) {
             perror("read");
@@ -131,7 +131,7 @@ int main(int argc, char *argv[]) {
           char filename[60] = "tempdir/";
           strcat(filename, hash);
           FILE *file = fopen(filename, "wb");
-          for (idx = 0; idx < 64; idx++)
+          for (idx = 0; idx < BLOCK_SIZE; idx++)
             fputc(bytes[idx], file);
           fclose(file);
         }
@@ -200,7 +200,7 @@ int main(int argc, char *argv[]) {
           return err;
         }
 
-        //TODO: somehow find IP addr
+        // TODO: somehow find IP addr
         char ip[20] = "127.0.0.1";
         err = write(conn_fd, ip, 20);
         if (err == -1) {
@@ -232,11 +232,11 @@ int main(int argc, char *argv[]) {
         }
         printf("Got the file\n");
         write(conn_fd, &code, sizeof(int));
-        int bytes[64];
+        int bytes[BLOCK_SIZE];
         int times, size;
         FILE *file = fopen(filename, "rb");
         size = getFileSize(file);
-        times = ceil((double)size / (double)64);
+        times = ceil((double)size / (double)BLOCK_SIZE);
         splitFile2Bytes(file, size, bytes, times);
 
         err = write(conn_fd, bytes, 256);
@@ -323,13 +323,13 @@ int handleFile(char *originalFilename) {
 
   FILE *file = fopen(file2Remove, "rb");
   int size = getFileSize(file);
-  int times = ceil((double)size / (double)64);
+  int times = ceil((double)size / (double)BLOCK_SIZE);
   int bytes[times][256 / sizeof(int)];
   splitFile2Bytes(file, size, bytes, times);
 
   unsigned char hashes[times][41];
   for (i = 0; i < times; i++) {
-    hashFile(bytes[i], 64, hashes[i]);
+    hashFile(bytes[i], BLOCK_SIZE, hashes[i]);
     printf("%s\n", hashes[i]);
   }
 
@@ -337,7 +337,6 @@ int handleFile(char *originalFilename) {
   strcpy(finalFilename, originalFilename);
   strcat(finalFilename, ".gz.cpt.f");
   printf("Final filename: %s\n", finalFilename);
-  //finalFilename[strlen(finalFilename)] = '\0';
   createFile(finalFilename);
   file = fopen(finalFilename, "w");
   for (i = 0; i < times; i++)
@@ -404,12 +403,11 @@ int receiveFile(char *originalFilename) {
 
   int hashIdx, size;
   FILE *file = fopen(originalFilename, "r");
-  printf("originalFilename: %s\n", originalFilename);
   size = getFileSize(file);
   char hashes[size / 41][41];
   hashesFromFile(file, hashes, &hashIdx);
-  int bytes[hashIdx][64];
-  
+  int bytes[hashIdx][BLOCK_SIZE];
+
   for (i = 0; i < hashIdx; i++) {
     char location[20];
     int result = searchFileLocation(hashes[i], location);
@@ -432,7 +430,7 @@ int receiveFile(char *originalFilename) {
   int j;
   file = fopen(filename, "wb");
   for (i = 0; i < hashIdx; i++) {
-    for (j = 0; j < 64; j++)
+    for (j = 0; j < BLOCK_SIZE; j++)
       fputc(bytes[i][j], file);
   }
   fclose(file);
@@ -450,18 +448,14 @@ int receiveFile(char *originalFilename) {
   if (err == -1) {
     printf("Error uncompressing file\n");
   }
-  printf("zip filenmae: %s\n", zipFilename);
 
   char unzipFilename[strlen(zipFilename) - 2];
   memcpy(unzipFilename, zipFilename, strlen(zipFilename) - 3);
   unzipFilename[strlen(zipFilename) - 3] = '\0';
-  printf("Unzip filename: %s\n", unzipFilename);
-
 
   char finalFilename[strlen(originalFilename) - 8];
   memcpy(finalFilename, originalFilename, strlen(originalFilename) - 9);
   finalFilename[strlen(finalFilename)] = '\0';
-  printf("Final filename: %s\n", finalFilename);
   err = rename(unzipFilename, finalFilename);
   if (err == -1) {
     perror("rename");
@@ -482,22 +476,18 @@ int unlistFile(char *originalFilename) {
   }
   FILE *file = fopen(filename, "r");
   int size = getFileSize(file);
-  //int times = ceil((double)size / (double)64);
   int times = size / 41;
   unsigned char hashes[times][41];
   int hashIdx, i;
 
   hashesFromFile(file, hashes, &hashIdx);
-  printf("HashIdx: %d | times: %d\n", hashIdx, times);
 
   for (i = 0; i < times; i++) {
     int type = 3;
     int code = 0;
     char location[20];
     server_t server = {0};
-    printf("Hash for search: %s\n", hashes[i]);
     int result = searchFileLocation(hashes[i], location);
-    printf("Location: %s\n", location);
     if (result != 1) {
       printf("No file found\n");
       return -1;
@@ -572,8 +562,7 @@ int listenFolder(char *dirname) {
       struct inotify_event *event = (struct inotify_event *)&buffer[i];
       if (event->len) {
         char filename[80];
-        //strcpy(filename, event->name);
-        sprintf(filename, "%s/%s", dirname,event->name);
+        sprintf(filename, "%s/%s", dirname, event->name);
 
         if (event->mask & IN_CREATE) {
           printf("The file %s was created.\n", event->name);
@@ -594,7 +583,7 @@ int listenFolder(char *dirname) {
             printf("The file %s was accessed.\n", event->name);
             receiveFile(filename);
           }
-        } 
+        }
       }
       i += EVENT_SIZE + event->len;
     }

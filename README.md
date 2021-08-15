@@ -29,32 +29,20 @@ SERVER
 ----
   - [x] Listen on some port
 
-
-SERVER CONNECTION
-----
-  - Hash amount --> 
-  - <-- 0
-  - For hash amount:
-    - Hash --> 
-    - <-- 0
-    - Bytes for hash --> 
-    - <-- 0
-
-
 PROCESSES
 ----
   - [ ] Read all the files:
     - [x] Compress, encrypt, split and hash
-    - [ ] Make a list of those hashes in a file
-  - [ ] Start TCP server and listen for requests
-    - [ ] When a request for a file comes in:
-      - [ ] Check all the hashes and if one coincides then send that file
-      - [ ] If you don't have the file send a request for 
+    - [x] Make a list of those hashes in a file
+  - [x] Start TCP server and listen for requests
+    - [x] When a request for a file comes in:
+      - [x] Check all the hashes and if one coincides then send that file
+      - [x] If you don't have the file send a request for 
         that file to everyone you know in the DHT 
         with the first requester as the direction.
-  - [ ] Start file listener
-    - [ ] When a file changes or is added handle the file
-    - [ ] Update your file list
+  - [x] Start file listener
+    - [x] When a file changes or is added handle the file
+    - [x] Update your file list
 
 
 DO NOW

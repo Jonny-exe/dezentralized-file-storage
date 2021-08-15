@@ -5,15 +5,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <sys/inotify.h>
+#include <unistd.h>
 
 #define MAX_FILENAME 80
 #define MAX_FILE_SIZE 4294967296 // 4 gb
 #define EVENT_SIZE (sizeof(struct inotify_event))
 #define BUF_LEN (1024 * (EVENT_SIZE + 16))
-#define BLOCK_SIZE (256/sizeof(int))
-
 
 // Running gdb: gcc -Wall -g main.c -lcrypto -lm -o main
 // Using it:    gcc -Wall main.c -lcrypto -lm -o main
@@ -60,7 +58,7 @@ void readFolderFiles(char *dirname, char files[100][MAX_FILENAME], int *index) {
   *index = idx;
 }
 
-//void splitFile2Bytes(FILE *file, int size, int **bytes, int times) {
+// void splitFile2Bytes(FILE *file, int size, int **bytes, int times) {
 void splitFile2Bytes(FILE *file, int size, int *bytes, int times) {
   // TODO: fix this with huge files:
   // https://stackoverflow.com/questions/41859547/how-to-read-a-large-file-with-function-read-in-c?noredirect=1&lq=1
@@ -110,9 +108,9 @@ void hashFile(int *bytes, int bytesSize, unsigned char *finalhash) {
   int i, idx = 0;
   unsigned char hash[SHA_DIGEST_LENGTH];
 
-  char byteArray[64];
-  memcpy(byteArray, bytes, 64);
-  SHA1(byteArray, 64, hash);
+  char byteArray[BLOCK_SIZE];
+  memcpy(byteArray, bytes, BLOCK_SIZE);
+  SHA1(byteArray, BLOCK_SIZE, hash);
 
   for (i = 0; i < SHA_DIGEST_LENGTH; i++, idx += 2) {
     sprintf(finalhash + 2 * i, "%02x", hash[i]);
@@ -149,8 +147,7 @@ int uncompressFile(char *filename) {
 int createFile(char *filename) {
   int err;
   char command[MAX_FILENAME * 3];
-  sprintf(command,
-          "file=\"%s\" && mkdir -p \"${file%%/*}\" && touch \"$file\"",
+  sprintf(command, "file=\"%s\" && mkdir -p \"${file%%/*}\" && touch \"$file\"",
           filename);
   err = system(command);
   return err;
@@ -164,7 +161,6 @@ int removeFile(char *filename) {
   return err;
 }
 
-
 void hashesFromFile(FILE *file, char *hashes, int *hashIdx) {
   if (file == NULL) {
     printf("File does not exist\n");
@@ -173,7 +169,7 @@ void hashesFromFile(FILE *file, char *hashes, int *hashIdx) {
   int idx = 0, hsIdx = 0;
 
   int ch;
-  while((ch = fgetc(file)) != EOF) {
+  while ((ch = fgetc(file)) != EOF) {
     if (ch == '\n') {
       hashes[hsIdx * 41 + idx] = '\0';
       idx = 0;
@@ -183,7 +179,7 @@ void hashesFromFile(FILE *file, char *hashes, int *hashIdx) {
     hashes[hsIdx * 41 + idx] = ch;
     idx++;
   }
-  
+
   *hashIdx = hsIdx;
 }
 
@@ -193,13 +189,13 @@ int tests() {
   FILE *file = fopen(filename, "rb");
 
   int size = getFileSize(file);
-  int times = ceil((double)size / (double)64);
+  int times = ceil((double)size / (double)BLOCK_SIZE);
   int bytes[BLOCK_SIZE][times];
 
   splitFile2Bytes(file, size, bytes, times);
   unsigned char *hashes[SHA_DIGEST_LENGTH];
   for (int i = 0; i < 5; i++) {
-    hashFile(bytes[i], 64, hashes[i]);
+    hashFile(bytes[i], BLOCK_SIZE, hashes[i]);
   }
   */
   char hashes[2][50];
