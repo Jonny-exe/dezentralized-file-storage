@@ -81,6 +81,7 @@ int main(int argc, char *argv[]) {
       // 0 = request to find a file.
       // 1 = request to store files on this pc
       // 2 = request to get a file
+      // 3 = request to remove a file
       //
       // Code:
       // 0 = don't have the file
@@ -244,6 +245,38 @@ int main(int argc, char *argv[]) {
         else
           printf("Sent bytes\n");
 
+        connection_close(conn_fd);
+      } else if (type == 3) {
+        int code = 1;
+        char hash[41];
+        err = read(conn_fd, hash, 41);
+        if (err == -1) {
+          perror("read");
+          printf("Error reading hash\n");
+        }
+
+        char filename[60] = OTHERS_FILES;
+        strcat(filename, hash);
+        printf("filename: %s\n", filename);
+        if (access(filename, F_OK) != 0) {
+          code = 0;
+          err = write(conn_fd, &code, sizeof(int));
+          if (err == -1) {
+            perror("write");
+            printf("Error writing code\n");
+          }
+          continue;
+        }
+        err = write(conn_fd, &code, sizeof(int));
+        if (err == -1) {
+          perror("write");
+          printf("Error writing code\n");
+        }
+        err = remove(filename);
+        if (err == -1) {
+          perror("remove");
+          printf("Error removing file\n");
+        }
         connection_close(conn_fd);
       }
     }
@@ -438,6 +471,82 @@ int receiveFile(char *originalFilename) {
   return 0;
 }
 
+int unlistFile(char *originalFilename) {
+  int err;
+  char filename[strlen(originalFilename) + 9];
+  strcpy(filename, originalFilename);
+  strcat(filename, ".gz.cpt.f");
+  if (access(filename, F_OK) != 0) {
+    printf("File isn't indexed\n");
+    return -1;
+  }
+  FILE *file = fopen(filename, "r");
+  int size = getFileSize(file);
+  //int times = ceil((double)size / (double)64);
+  int times = size / 41;
+  unsigned char hashes[times][41];
+  int hashIdx, i;
+
+  hashesFromFile(file, hashes, &hashIdx);
+  printf("HashIdx: %d | times: %d\n", hashIdx, times);
+
+  for (i = 0; i < times; i++) {
+    int type = 3;
+    int code = 0;
+    char location[20];
+    server_t server = {0};
+    printf("Hash for search: %s\n", hashes[i]);
+    int result = searchFileLocation(hashes[i], location);
+    printf("Location: %s\n", location);
+    if (result != 1) {
+      printf("No file found\n");
+      return -1;
+    }
+
+    err = (server.listen_fd = socket(AF_INET, SOCK_STREAM, 0));
+    if (err == -1) {
+      perror("socket");
+      printf("client: Failed to create socket endpoint\n");
+      return err;
+    }
+
+    err = server_connect(&server, location, PORT);
+    if (err == -1) {
+      perror("connect");
+      printf("Error connecting\n");
+    }
+
+    err = write(server.listen_fd, &type, sizeof(int));
+    if (err == -1) {
+      perror("write");
+      printf("Error writing type\n");
+    }
+
+    err = write(server.listen_fd, hashes[i], 41);
+    if (err == -1) {
+      perror("write");
+      printf("Error writing hash\n");
+    }
+
+    err = read(server.listen_fd, &code, sizeof(int));
+    if (err == -1) {
+      perror("read");
+      printf("Error reading code\n");
+    }
+
+    if (code == 0) {
+      printf("Error removing remote file\n");
+    }
+    connection_close(server.listen_fd);
+  }
+  err = remove(filename);
+  if (err == -1) {
+    perror("remove");
+    printf("Error removing file\n");
+  }
+  return 0;
+}
+
 int listenFolder(char *dirname) {
   int length, i;
   int fd;
@@ -475,10 +584,14 @@ int listenFolder(char *dirname) {
           printf("The file %s was deleted.\n", event->name);
         } else if (event->mask & IN_MODIFY) {
           printf("The file %s was modified.\n", event->name);
+          if (event->name[strlen(event->name) - 1] != 'f' ||
+              event->name[strlen(event->name) - 2] != '.')
+            unlistFile(filename);
+            handleFile(filename);
         } else if (event->mask & IN_ACCESS || event->mask & IN_OPEN) {
-          printf("The file %s was accessed.\n", event->name);
           if (event->name[strlen(event->name) - 1] == 'f' &&
               event->name[strlen(event->name) - 2] == '.') {
+            printf("The file %s was accessed.\n", event->name);
             receiveFile(filename);
           }
         } 
