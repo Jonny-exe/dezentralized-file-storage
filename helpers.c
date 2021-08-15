@@ -58,7 +58,6 @@ void readFolderFiles(char *dirname, char files[100][MAX_FILENAME], int *index) {
   *index = idx;
 }
 
-// void splitFile2Bytes(FILE *file, int size, int **bytes, int times) {
 void splitFile2Bytes(FILE *file, int size, int *bytes, int times) {
   // TODO: fix this with huge files:
   // https://stackoverflow.com/questions/41859547/how-to-read-a-large-file-with-function-read-in-c?noredirect=1&lq=1
@@ -66,24 +65,28 @@ void splitFile2Bytes(FILE *file, int size, int *bytes, int times) {
     printf("File does not exist.");
     exit(1);
   }
+  printf("Inside splitFile\n");
 
   int idx, c, max;
   int bytesIdx = 0;
 
   for (idx = 0, max = 0; max < size; idx++, max++) {
     c = getc(file);
-    bytes[bytesIdx * BLOCK_SIZE + idx] = c;
-    if (idx % 63 == 0 && idx != 0) {
+    //printf("Hola: %d\n", max);
+    printf("%c", c);
+    bytes[bytesIdx * BLOCK_LENGTH + idx] = c;
+    if (idx % (BLOCK_LENGTH - 1) == 0 && idx != 0) {
       idx = -1;
       bytesIdx++;
     }
   }
 
   if (idx != 0) {
-    for (idx = idx; idx < BLOCK_SIZE; idx++) {
-      bytes[bytesIdx * BLOCK_SIZE + idx] = 0;
+    for (idx = idx; idx < BLOCK_LENGTH; idx++) {
+      bytes[bytesIdx * BLOCK_LENGTH + idx] = 0;
     }
   }
+  printf("Finished splitting\n");
 }
 
 int getFileSize(FILE *file) {
@@ -108,9 +111,9 @@ void hashFile(int *bytes, int bytesSize, unsigned char *finalhash) {
   int i, idx = 0;
   unsigned char hash[SHA_DIGEST_LENGTH];
 
-  char byteArray[BLOCK_SIZE];
-  memcpy(byteArray, bytes, BLOCK_SIZE);
-  SHA1(byteArray, BLOCK_SIZE, hash);
+  char byteArray[BLOCK_LENGTH];
+  memcpy(byteArray, bytes, BLOCK_LENGTH);
+  SHA1(byteArray, BLOCK_LENGTH, hash);
 
   for (i = 0; i < SHA_DIGEST_LENGTH; i++, idx += 2) {
     sprintf(finalhash + 2 * i, "%02x", hash[i]);
@@ -184,20 +187,6 @@ void hashesFromFile(FILE *file, char *hashes, int *hashIdx) {
 }
 
 int tests() {
-  /*
-  char filename[MAX_FILENAME] = "./test/testfiles";
-  FILE *file = fopen(filename, "rb");
-
-  int size = getFileSize(file);
-  int times = ceil((double)size / (double)BLOCK_SIZE);
-  int bytes[BLOCK_SIZE][times];
-
-  splitFile2Bytes(file, size, bytes, times);
-  unsigned char *hashes[SHA_DIGEST_LENGTH];
-  for (int i = 0; i < 5; i++) {
-    hashFile(bytes[i], BLOCK_SIZE, hashes[i]);
-  }
-  */
   char hashes[2][50];
   int i;
   hashesFromFile("test/asdfasdf.gz.cpt.f", hashes, &i);

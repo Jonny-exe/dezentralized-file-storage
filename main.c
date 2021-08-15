@@ -1,5 +1,6 @@
 int PORT = 8080;
-int BLOCK_SIZE = 1024 * 256 / sizeof(int);
+int BLOCK_LENGTH = 1024 * 256 / sizeof(int);
+int BLOCK_SIZE = 1024 * 256;
 #include "hashtable.c"
 #include "helpers.c"
 #include "socket.c"
@@ -112,7 +113,7 @@ int main(int argc, char *argv[]) {
 
         for (i = 0; i < times; i++) {
           char hash[80];
-          int bytes[BLOCK_SIZE];
+          int bytes[BLOCK_LENGTH];
           err = read(conn_fd, hash, 41);
           if (err == -1) {
             perror("read");
@@ -120,7 +121,7 @@ int main(int argc, char *argv[]) {
             return err;
           }
 
-          err = read(conn_fd, bytes, 256);
+          err = read(conn_fd, bytes, BLOCK_SIZE);
           if (err == -1) {
             perror("read");
             printf("server: Failed reading message\n");
@@ -131,7 +132,7 @@ int main(int argc, char *argv[]) {
           char filename[60] = "tempdir/";
           strcat(filename, hash);
           FILE *file = fopen(filename, "wb");
-          for (idx = 0; idx < BLOCK_SIZE; idx++)
+          for (idx = 0; idx < BLOCK_LENGTH; idx++)
             fputc(bytes[idx], file);
           fclose(file);
         }
@@ -232,14 +233,14 @@ int main(int argc, char *argv[]) {
         }
         printf("Got the file\n");
         write(conn_fd, &code, sizeof(int));
-        int bytes[BLOCK_SIZE];
+        int bytes[BLOCK_LENGTH];
         int times, size;
         FILE *file = fopen(filename, "rb");
         size = getFileSize(file);
-        times = ceil((double)size / (double)BLOCK_SIZE);
+        times = ceil((double)size / (double)BLOCK_LENGTH);
         splitFile2Bytes(file, size, bytes, times);
 
-        err = write(conn_fd, bytes, 256);
+        err = write(conn_fd, bytes, BLOCK_SIZE);
         if (err == -1)
           printf("Error sending bytes\n");
         else
@@ -323,13 +324,14 @@ int handleFile(char *originalFilename) {
 
   FILE *file = fopen(file2Remove, "rb");
   int size = getFileSize(file);
-  int times = ceil((double)size / (double)BLOCK_SIZE);
-  int bytes[times][256 / sizeof(int)];
+  int times = ceil((double)size / (double)BLOCK_LENGTH);
+  int bytes[times][BLOCK_LENGTH];
   splitFile2Bytes(file, size, bytes, times);
+  printf("After split\n");
 
   unsigned char hashes[times][41];
   for (i = 0; i < times; i++) {
-    hashFile(bytes[i], BLOCK_SIZE, hashes[i]);
+    hashFile(bytes[i], BLOCK_LENGTH, hashes[i]);
     printf("%s\n", hashes[i]);
   }
 
@@ -406,7 +408,7 @@ int receiveFile(char *originalFilename) {
   size = getFileSize(file);
   char hashes[size / 41][41];
   hashesFromFile(file, hashes, &hashIdx);
-  int bytes[hashIdx][BLOCK_SIZE];
+  int bytes[hashIdx][BLOCK_LENGTH];
 
   for (i = 0; i < hashIdx; i++) {
     char location[20];
@@ -430,7 +432,7 @@ int receiveFile(char *originalFilename) {
   int j;
   file = fopen(filename, "wb");
   for (i = 0; i < hashIdx; i++) {
-    for (j = 0; j < BLOCK_SIZE; j++)
+    for (j = 0; j < BLOCK_LENGTH; j++)
       fputc(bytes[i][j], file);
   }
   fclose(file);
