@@ -1,4 +1,4 @@
-# Share files
+# Dezentralized file storage
 This is a simple decentralized file storage system.
 It works by sharing your files with other people so that your files are in a dezentralized cloud.
 
