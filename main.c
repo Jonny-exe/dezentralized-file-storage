@@ -132,8 +132,10 @@ int main(int argc, char *argv[]) {
           char filename[60] = "tempdir/";
           strcat(filename, hash);
           FILE *file = fopen(filename, "wb");
-          for (idx = 0; idx < BLOCK_LENGTH; idx++)
+          for (idx = 0; idx < BLOCK_LENGTH; idx++) {
+            printf("%d\n", idx);
             fputc(bytes[idx], file);
+          }
           fclose(file);
         }
 
@@ -327,7 +329,8 @@ int handleFile(char *originalFilename) {
   int times = ceil((double)size / (double)BLOCK_LENGTH);
   int bytes[times][BLOCK_LENGTH];
   splitFile2Bytes(file, size, bytes, times);
-  printf("After split\n");
+  printf("Times: %d\n", times);
+
 
   unsigned char hashes[times][41];
   for (i = 0; i < times; i++) {
@@ -344,8 +347,7 @@ int handleFile(char *originalFilename) {
   for (i = 0; i < times; i++)
     fprintf(file, "%s\n", hashes[i]);
 
-  fclose(file);
-
+  fclose(file); 
   int type = 1;
   server_t server = {0};
 
@@ -386,14 +388,16 @@ int handleFile(char *originalFilename) {
       perror("write");
       printf("client: Failed writting message\n");
     }
-    err = write(server.listen_fd, bytes[i], sizeof(bytes[i]));
+    printf("Before send\n");
+    err = write(server.listen_fd, bytes[i], BLOCK_SIZE);
     if (err == -1) {
       perror("write");
       printf("client: Failed writting message\n");
       return err;
     }
+    printf("After send\n");
   }
-  remove(file2Remove);
+  //remove(file2Remove);
   connection_close(server.listen_fd);
   return 0;
 }
@@ -576,9 +580,10 @@ int listenFolder(char *dirname) {
         } else if (event->mask & IN_MODIFY) {
           printf("The file %s was modified.\n", event->name);
           if (event->name[strlen(event->name) - 1] != 'f' ||
-              event->name[strlen(event->name) - 2] != '.')
+              event->name[strlen(event->name) - 2] != '.') {
             unlistFile(filename);
             handleFile(filename);
+          }
         } else if (event->mask & IN_ACCESS || event->mask & IN_OPEN) {
           if (event->name[strlen(event->name) - 1] == 'f' &&
               event->name[strlen(event->name) - 2] == '.') {

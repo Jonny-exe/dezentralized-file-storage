@@ -72,8 +72,6 @@ void splitFile2Bytes(FILE *file, int size, int *bytes, int times) {
 
   for (idx = 0, max = 0; max < size; idx++, max++) {
     c = getc(file);
-    //printf("Hola: %d\n", max);
-    printf("%c", c);
     bytes[bytesIdx * BLOCK_LENGTH + idx] = c;
     if (idx % (BLOCK_LENGTH - 1) == 0 && idx != 0) {
       idx = -1;
