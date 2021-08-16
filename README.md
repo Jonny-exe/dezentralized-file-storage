@@ -8,7 +8,7 @@ If you want to understand how it works more in detail you can read [this article
 # How to use it
 ## Setup
 1. Execute the setup script to generate a service file.
-2. Make sure port: 8080 is open.
+2. Make sure port `8080` is open.
 3. Indicate what folder you want you sync.
 
 ## Using it
