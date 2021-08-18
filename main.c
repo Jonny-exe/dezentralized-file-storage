@@ -1,7 +1,7 @@
 int PORT = 8080;
 int BLOCK_LENGTH = 1024 * 256 / sizeof(int);
 int BLOCK_SIZE = 1024 * 256;
-char CONFIG_FILE[100] = "$HOME/Documents/GitHub/share-files/config/config";
+char CONFIG_FILE_HALF_PATH[100] = "/Documents/GitHub/share-files/config/config";
 #include "hashtable.c"
 #include "helpers.c"
 #include "socket.c"
@@ -29,14 +29,17 @@ int main(int argc, char *argv[]) {
   char dirname[100] = "./test";
 
   char hashes[1][41];
+  char *CONFIG_FILE = getenv("HOME");
+  strcat(CONFIG_FILE, CONFIG_FILE_HALF_PATH);
+  printf("Config file path: %s\n", CONFIG_FILE);
   FILE *file = fopen(CONFIG_FILE, "r");
   int hashIdx = 0;
   unsigned char userHash[40];
   err = hashesFromFile(file, hashes, &hashIdx);
   if (err == -1) {
-    createFile(CONFIG_FILE);
     err = 0;
-    file = fopen(CONFIG_FILE, "w");
+    createFile(CONFIG_FILE);
+    file = fopen("config/config", "w");
     if (file == NULL) {
       printf("Problems with config file\n");
       //exit(0);
