@@ -1,6 +1,7 @@
 int PORT = 8080;
 int BLOCK_LENGTH = 1024 * 256 / sizeof(int);
 int BLOCK_SIZE = 1024 * 256;
+char CONFIG_FILE[100] = "$HOME/Documents/GitHub/share-files/config/config";
 #include "hashtable.c"
 #include "helpers.c"
 #include "socket.c"
@@ -17,12 +18,38 @@ int BLOCK_SIZE = 1024 * 256;
 #define LOCALHOST "127.0.0.1"
 #define BUF_LEN (1024 * (EVENT_SIZE + 16))
 
+// Running gdb: gcc -Wall -g main.c -lcrypto -lm -o main
+// Using it:    gcc -Wall main.c -lcrypto -lm -o main
+
 int createFakeTree(char files[MAX_FILENAME][100], int size);
 int handleFile(char *filename);
 int listenFolder(char *dirname);
 int main(int argc, char *argv[]) {
   int err;
   char dirname[100] = "./test";
+
+  char hashes[1][41];
+  FILE *file = fopen(CONFIG_FILE, "r");
+  int hashIdx = 0;
+  unsigned char userHash[40];
+  err = hashesFromFile(file, hashes, &hashIdx);
+  if (err == -1) {
+    createFile(CONFIG_FILE);
+    err = 0;
+    file = fopen(CONFIG_FILE, "w");
+    if (file == NULL) {
+      printf("Problems with config file\n");
+      //exit(0);
+    }
+    randomHash(userHash);
+    fprintf(file, "%s", userHash);
+    fclose(file);
+  } else {
+    fclose(file);
+    memcpy(userHash, hashes[0], 37);
+  }
+  printf("User Hash: %s\n", userHash);
+
   if (fork() == 0) {
     // Handle all the initial files and the TCP server
     PORT = atoi(argv[2]);

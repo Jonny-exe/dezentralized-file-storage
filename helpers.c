@@ -7,6 +7,7 @@
 #include <string.h>
 #include <sys/inotify.h>
 #include <unistd.h>
+#include <uuid/uuid.h>
 
 #define MAX_FILENAME 80
 #define MAX_FILE_SIZE 4294967296 // 4 gb
@@ -25,7 +26,8 @@ void hashFile(int *bytes, int bytesSize, unsigned char *hash);
 int tests();
 int createFile(char *filename);
 int removeFile(char *filename);
-void hashesFromFile(FILE *file, char *hashes, int *hashIdx);
+int hashesFromFile(FILE *file, char *hashes, int *hashIdx);
+int randomHash(unsigned char *hash);
 
 void readFolderFiles(char *dirname, char files[100][MAX_FILENAME], int *index) {
   DIR *folder;
@@ -109,7 +111,7 @@ void hashFile(int *bytes, int bytesSize, unsigned char *finalhash) {
   int i, idx = 0;
   unsigned char hash[SHA_DIGEST_LENGTH];
 
-  char byteArray[BLOCK_LENGTH];
+  unsigned char byteArray[BLOCK_LENGTH];
   memcpy(byteArray, bytes, BLOCK_LENGTH);
   SHA1(byteArray, BLOCK_LENGTH, hash);
 
@@ -162,10 +164,10 @@ int removeFile(char *filename) {
   return err;
 }
 
-void hashesFromFile(FILE *file, char *hashes, int *hashIdx) {
+int hashesFromFile(FILE *file, char *hashes, int *hashIdx) {
   if (file == NULL) {
     printf("File does not exist\n");
-    return;
+    return -1;
   }
   int idx = 0, hsIdx = 0;
 
@@ -182,6 +184,24 @@ void hashesFromFile(FILE *file, char *hashes, int *hashIdx) {
   }
 
   *hashIdx = hsIdx;
+  return 0;
+}
+
+int randomHash(unsigned char *finalHash) {
+	uuid_t binuuid;
+	uuid_generate_random(binuuid);
+	unsigned char *uuid = malloc(37);
+	uuid_unparse(binuuid, uuid);
+
+  int i, idx = 0;
+  unsigned char hash[SHA_DIGEST_LENGTH];
+
+  SHA1(uuid, 37, hash);
+
+  for (i = 0; i < SHA_DIGEST_LENGTH; i++, idx += 2) {
+    sprintf(finalHash + 2 * i, "%02x", hash[i]);
+  }
+	return 0;
 }
 
 int tests() {
