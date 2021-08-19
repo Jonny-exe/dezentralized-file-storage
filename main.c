@@ -1,4 +1,5 @@
 int PORT = 8080;
+int OTHERS_FILES = getenv("OTHERS_FILES");
 int BLOCK_LENGTH = 1024 * 256 / sizeof(int);
 int BLOCK_SIZE = 1024 * 256;
 char CONFIG_FILE_HALF_PATH[100] = "/Documents/GitHub/share-files/config/config";
@@ -12,7 +13,6 @@ char CONFIG_FILE_HALF_PATH[100] = "/Documents/GitHub/share-files/config/config";
 #include <sys/inotify.h>
 #define MAX_FILENAME 80
 #define TEMP_FILE "temp.tar"
-#define OTHERS_FILES "tempdir/"
 #define FILE_LIST "local_file_list"
 #define HASH_TABLE "local_hash_table"
 #define LOCALHOST "127.0.0.1"
@@ -25,11 +25,18 @@ int createFakeTree(char files[MAX_FILENAME][100], int size);
 int handleFile(char *filename);
 int listenFolder(char *dirname);
 int main(int argc, char *argv[]) {
+  if (OTHERS_FILES == NULL) {
+    perror("getenv");
+    printf("Error getting OTHERS_FILES env var");
+    return 0;
+  }
   int err;
-  char dirname[100] = "./test";
+  char dirname[100] = getenv("LISTEN_DIR");
+  if (dirname == NULL)
+    strcpy(dirname, "./test");
 
   char hashes[1][41];
-  char *CONFIG_FILE = getenv("HOME");
+  char CONFIG_FILE[100] = getenv("HOME");
   strcat(CONFIG_FILE, CONFIG_FILE_HALF_PATH);
   printf("Config file path: %s\n", CONFIG_FILE);
   FILE *file = fopen(CONFIG_FILE, "r");
@@ -57,17 +64,18 @@ int main(int argc, char *argv[]) {
     // Handle all the initial files and the TCP server
     PORT = atoi(argv[2]);
 
-    if (strcmp(argv[1], "send") == 0) {
-      char files[100][MAX_FILENAME];
-      int index, i;
+    //Only for testing
+    //if (strcmp(argv[1], "send") == 0) {
+    char files[100][MAX_FILENAME];
+    int index, i;
 
-      readFolderFiles(dirname, files, &index);
-      for (i = 0; i < index; i++) {
-        printf("File: %s\n", files[i]);
-        handleFile(files[i]);
-      }
-      return 0;
+    readFolderFiles(dirname, files, &index);
+    for (i = 0; i < index; i++) {
+      printf("File: %s\n", files[i]);
+      handleFile(files[i]);
     }
+    return 0;
+    //}
 
     server_t server = {0};
 

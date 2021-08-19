@@ -1,3 +1,5 @@
 [Service]
 ExecStart=/usr/bin/dfs
 Description="This is dezetralized file storage service"
+Environment="LISTEN_DIR=dir to listen on files"
+Environment="OTHERS_FILES=dir to listen on files"
