@@ -31,6 +31,7 @@ int main(int argc, char *argv[]) {
     return 0;
   }
   strcpy(OTHERS_FILES, others_files); 
+  printf("OTHES_FILES=%s\n", OTHERS_FILES);
 
   if (OTHERS_FILES == NULL) {
     perror("getenv");
@@ -45,6 +46,7 @@ int main(int argc, char *argv[]) {
   }
   char DIRNAME[100];
   strcpy(DIRNAME, dirname);
+  printf("LISTEN_DIR=%s\n", DIRNAME);
 
   char hashes[1][41];
   char CONFIG_FILE[100];
@@ -182,7 +184,6 @@ int main(int argc, char *argv[]) {
           strcat(filename, hash);
           FILE *file = fopen(filename, "wb");
           for (idx = 0; idx < BLOCK_LENGTH; idx++) {
-            printf("%d\n", idx);
             fputc(bytes[idx], file);
           }
           fclose(file);
@@ -338,7 +339,7 @@ int main(int argc, char *argv[]) {
   } else {
     // Handle the file listening
     if (strcmp(argv[1], "send") != 0) {
-      strcpy(DIRNAME, "test2");
+      //strcpy(DIRNAME, "test2");
     }
     listenFolder(DIRNAME);
     exit(0);
@@ -355,8 +356,11 @@ int createFakeTree(char files[MAX_FILENAME][100], int size) {
 }
 
 int handleFile(char *originalFilename) {
-  int err, i;
   char command[100];
+
+  int lines, err, i;
+  row_t hashtable[200];
+  read_table(HASH_TABLE, hashtable, &lines);
 
   err = rename(originalFilename, "tmp/temp");
   if (err == -1)
@@ -410,11 +414,13 @@ int handleFile(char *originalFilename) {
     return err;
   }
 
-  err = server_connect(&server, LOCALHOST, PORT);
+  printf("Connecting to ip: %s\n", hashtable[0].ip);
+  err = server_connect(&server, hashtable[0].ip, PORT);
   if (err == -1) {
     perror("connect");
     printf("Error connecting\n");
   }
+  printf("Success connecting to ip\n");
 
   err = write(server.listen_fd, &type, sizeof(int));
   if (err == -1) {
@@ -449,7 +455,7 @@ int handleFile(char *originalFilename) {
     }
     printf("After send\n");
   }
-  //remove(file2Remove);
+  remove(file2Remove);
   connection_close(server.listen_fd);
   return 0;
 }
@@ -493,10 +499,12 @@ int receiveFile(char *originalFilename) {
   }
   fclose(file);
 
+  system("ls tmp/");
   printf("Filename 20: %s\n", filename);
   err = cryptFile("a random key", filename, "decrypt");
   if (err == -1)
     printf("Error decrypting file\n");
+  printf("After decrypting\n");
 
   char zipFilename[strlen(filename) - 3];
   memcpy(zipFilename, filename, strlen(filename) - 4);
@@ -506,6 +514,7 @@ int receiveFile(char *originalFilename) {
   if (err == -1) {
     printf("Error uncompressing file\n");
   }
+  printf("After compress\n");
 
   char unzipFilename[strlen(zipFilename) - 2];
   memcpy(unzipFilename, zipFilename, strlen(zipFilename) - 3);

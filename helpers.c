@@ -124,7 +124,7 @@ int cryptFile(char *key, char *filename, char *type) {
   if (strcmp(type, "encrypt") != 0 && strcmp(type, "decrypt") != 0)
     return -1;
 
-  char command[100];
+  char command[250];
   int result;
   sprintf(command, "ccrypt --%s --key '%s' '%s'", type, key, filename);
   result = system(command);
@@ -134,15 +134,15 @@ int cryptFile(char *key, char *filename, char *type) {
 int compressFile(char *filename) {
   char command[200];
   int result;
-  sprintf(command, "touch -t 10161000 '%s' && gzip '%s'", filename, filename);
+  sprintf(command, "touch -t 10161000 '%s' && gzip --no-name '%s'", filename, filename);
   result = system(command);
   return result;
 }
 
 int uncompressFile(char *filename) {
-  char command[100];
+  char command[200];
   int result;
-  sprintf(command, "gunzip -f '%s'", filename);
+  sprintf(command, "touch -t 10161000 '%s' && gunzip -f --no-name '%s'", filename, filename);
   result = system(command);
   return result;
 }
