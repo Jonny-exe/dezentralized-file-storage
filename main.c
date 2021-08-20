@@ -1,5 +1,4 @@
 int PORT = 8080;
-int OTHERS_FILES = getenv("OTHERS_FILES");
 int BLOCK_LENGTH = 1024 * 256 / sizeof(int);
 int BLOCK_SIZE = 1024 * 256;
 char CONFIG_FILE_HALF_PATH[100] = "/Documents/GitHub/share-files/config/config";
@@ -25,18 +24,31 @@ int createFakeTree(char files[MAX_FILENAME][100], int size);
 int handleFile(char *filename);
 int listenFolder(char *dirname);
 int main(int argc, char *argv[]) {
+  char OTHERS_FILES[100];
+  char *others_files = getenv("OTHERS_FILES");
+  if (!others_files) {
+    printf("Env var \"OTHER_FILES\"doesn't exist\n");
+    return 0;
+  }
+  strcpy(OTHERS_FILES, others_files); 
+
   if (OTHERS_FILES == NULL) {
     perror("getenv");
     printf("Error getting OTHERS_FILES env var");
     return 0;
   }
   int err;
-  char dirname[100] = getenv("LISTEN_DIR");
-  if (dirname == NULL)
-    strcpy(dirname, "./test");
+  char *dirname = getenv("LISTEN_DIR");
+  if (!dirname) {
+    printf("Envr var \"LISTEN_DIR\" doesn't exists\n");
+    return 0;
+  }
+  char DIRNAME[100];
+  strcpy(DIRNAME, dirname);
 
   char hashes[1][41];
-  char CONFIG_FILE[100] = getenv("HOME");
+  char CONFIG_FILE[100];
+  strcpy(CONFIG_FILE, getenv("HOME"));
   strcat(CONFIG_FILE, CONFIG_FILE_HALF_PATH);
   printf("Config file path: %s\n", CONFIG_FILE);
   FILE *file = fopen(CONFIG_FILE, "r");
@@ -62,19 +74,18 @@ int main(int argc, char *argv[]) {
 
   if (fork() == 0) {
     // Handle all the initial files and the TCP server
-    PORT = atoi(argv[2]);
 
     //Only for testing
     //if (strcmp(argv[1], "send") == 0) {
     char files[100][MAX_FILENAME];
     int index, i;
 
-    readFolderFiles(dirname, files, &index);
+    readFolderFiles(DIRNAME, files, &index);
     for (i = 0; i < index; i++) {
       printf("File: %s\n", files[i]);
       handleFile(files[i]);
     }
-    return 0;
+    //return 0;
     //}
 
     server_t server = {0};
@@ -201,7 +212,8 @@ int main(int argc, char *argv[]) {
           return err;
         }
 
-        char filename[60] = OTHERS_FILES;
+        char filename[60];
+        strcpy(filename, OTHERS_FILES);
         strcat(filename, hash);
         if (access(filename, F_OK) != 0) {
           // Don't have the file
@@ -259,7 +271,8 @@ int main(int argc, char *argv[]) {
           printf("Error reading hash\n");
         }
 
-        char filename[60] = OTHERS_FILES;
+        char filename[60];
+        strcpy(filename, OTHERS_FILES);
         strcat(filename, hash);
         printf("filename: %s\n", filename);
         if (access(filename, F_OK) != 0) {
@@ -296,7 +309,8 @@ int main(int argc, char *argv[]) {
           printf("Error reading hash\n");
         }
 
-        char filename[60] = OTHERS_FILES;
+        char filename[60];
+        strcpy(filename, OTHERS_FILES);
         strcat(filename, hash);
         printf("filename: %s\n", filename);
         if (access(filename, F_OK) != 0) {
@@ -324,9 +338,9 @@ int main(int argc, char *argv[]) {
   } else {
     // Handle the file listening
     if (strcmp(argv[1], "send") != 0) {
-      strcpy(dirname, "test2");
+      strcpy(DIRNAME, "test2");
     }
-    listenFolder(dirname);
+    listenFolder(DIRNAME);
     exit(0);
   }
   return 0;
