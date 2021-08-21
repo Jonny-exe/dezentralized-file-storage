@@ -5,6 +5,10 @@ It works by sharing your files with other people so that your files are in a dez
 All files are encrypted and cut into blocks to ensure privacy.
 If you want to understand how it works more in detail you can read [this article](https://ipfs.io/#how).
 
+# Use cases
+This can be used if you are looking to free up some space or you want to sync files between different computers. You can create your own network of devices your connect to the public one.
+
+_This system hasn't been tested enough. Don't use it for anything really important
 # How to use it
 ## Setup
 1. Execute the setup script to generate a service file.
@@ -15,7 +19,6 @@ If you want to understand how it works more in detail you can read [this article
 1. `.f` files will replace your original files. **Do not alter these files. They contain your original files hashes. If you loose those hashes your files is gone.**
 2. To access your original files simply access (read or open the file) the `.f` file and the original file will be generated.
 
-_Do not use this system for anything important_
 
 # TODOS
 
@@ -66,4 +69,4 @@ DO NOW
   (compress, encrypt, split, hash)
   - [x] Fix hashing function
   - [x] Write function to send a group of bytes
-  - [ ] Some not read all the files at once.
+  - [ ] Somehow not read all the files at once.
