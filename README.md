@@ -49,7 +49,7 @@ SERVER
 
 PROCESSES
 ----
-  - [ ] Read all the files:
+  - [X] Read all the files:
     - [x] Compress, encrypt, split and hash
     - [x] Make a list of those hashes in a file
   - [x] Start TCP server and listen for requests

@@ -3,3 +3,4 @@ ExecStart=/usr/bin/dfs
 Description="This is dezetralized file storage service"
 Environment="LISTEN_DIR=dir to listen on files"
 Environment="OTHERS_FILES=dir to listen on files"
+Environment="ENC_KEY=a key phrase for your file encryption. Example: 'very secure key'"

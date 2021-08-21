@@ -1,6 +1,7 @@
 int PORT = 8080;
 int BLOCK_LENGTH = 1024 * 256 / sizeof(int);
 int BLOCK_SIZE = 1024 * 256;
+char ENC_KEY[200];
 char CONFIG_FILE_HALF_PATH[100] = "/Documents/GitHub/share-files/config/config";
 #include "hashtable.c"
 #include "helpers.c"
@@ -24,6 +25,14 @@ int createFakeTree(char files[MAX_FILENAME][100], int size);
 int handleFile(char *filename);
 int listenFolder(char *dirname);
 int main(int argc, char *argv[]) {
+  char *enc_key = getenv("ENC_KEY");
+  if (!enc_key) {
+    printf("Env var \"ENC_KEY\" doesn't exists\n");
+    return 0;
+  }
+  strcpy(ENC_KEY, enc_key);
+  printf("ENC_KEY=%s\n", ENC_KEY);
+
   char OTHERS_FILES[100];
   char *others_files = getenv("OTHERS_FILES");
   if (!others_files) {
@@ -31,7 +40,7 @@ int main(int argc, char *argv[]) {
     return 0;
   }
   strcpy(OTHERS_FILES, others_files); 
-  printf("OTHES_FILES=%s\n", OTHERS_FILES);
+  printf("OTHERS_FILES=%s\n", OTHERS_FILES);
 
   if (OTHERS_FILES == NULL) {
     perror("getenv");
@@ -338,9 +347,9 @@ int main(int argc, char *argv[]) {
     }
   } else {
     // Handle the file listening
-    if (strcmp(argv[1], "send") != 0) {
+    //if (strcmp(argv[1], "send") != 0) {
       //strcpy(DIRNAME, "test2");
-    }
+    //}
     listenFolder(DIRNAME);
     exit(0);
   }
@@ -372,7 +381,8 @@ int handleFile(char *originalFilename) {
   if (err == -1)
     printf("Error compressing file\n");
   strcat(filename, ".gz");
-  err = cryptFile("a random key", filename, "encrypt");
+  
+  err = cryptFile(ENC_KEY, filename, "encrypt");
   if (err == -1)
     printf("Error encrypting file\n");
   strcat(filename, ".cpt");
@@ -502,7 +512,7 @@ int receiveFile(char *originalFilename) {
 
   system("ls tmp/");
   printf("Filename 20: %s\n", filename);
-  err = cryptFile("a random key", filename, "decrypt");
+  err = cryptFile(ENC_KEY, filename, "decrypt");
   if (err == -1)
     printf("Error decrypting file\n");
   printf("After decrypting\n");
