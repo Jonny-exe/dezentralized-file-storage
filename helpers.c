@@ -67,7 +67,6 @@ void splitFile2Bytes(FILE *file, int size, int *bytes, int times) {
     printf("File does not exist.");
     exit(1);
   }
-  printf("Inside splitFile\n");
 
   int idx, c, max;
   int bytesIdx = 0;
@@ -80,13 +79,6 @@ void splitFile2Bytes(FILE *file, int size, int *bytes, int times) {
       bytesIdx++;
     }
   }
-
-  if (idx != 0) {
-    for (idx = idx; idx < BLOCK_LENGTH; idx++) {
-      bytes[bytesIdx * BLOCK_LENGTH + idx] = 0;
-    }
-  }
-  printf("Finished splitting\n");
 }
 
 int getFileSize(FILE *file) {

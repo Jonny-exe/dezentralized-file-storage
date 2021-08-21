@@ -160,7 +160,6 @@ int main(int argc, char *argv[]) {
           printf("Error creating temp dir\n");
           err = 0;
         }
-        printf("Times: %d\n", times);
 
         for (i = 0; i < times; i++) {
           char hash[80];
@@ -184,12 +183,14 @@ int main(int argc, char *argv[]) {
           strcat(filename, hash);
           FILE *file = fopen(filename, "wb");
           for (idx = 0; idx < BLOCK_LENGTH; idx++) {
+            if (*(bytes+idx) == NULL)
+              break;
             fputc(bytes[idx], file);
           }
           fclose(file);
         }
 
-        printf("Close\n");
+        printf("Close connection\n");
         err = connection_close(conn_fd);
         if (err == -1) {
           perror("close");
@@ -295,11 +296,10 @@ int main(int argc, char *argv[]) {
         splitFile2Bytes(file, size, bytes, times);
 
         err = write(conn_fd, bytes, BLOCK_SIZE);
-        if (err == -1)
+        if (err == -1) {
+          perror("write");
           printf("Error sending bytes\n");
-        else
-          printf("Sent bytes\n");
-
+        }
         connection_close(conn_fd);
       } else if (type == 3) {
         int code = 1;
@@ -384,9 +384,8 @@ int handleFile(char *originalFilename) {
   int size = getFileSize(file);
   int times = ceil((double)size / (double)BLOCK_LENGTH);
   int bytes[times][BLOCK_LENGTH];
+  int idx;
   splitFile2Bytes(file, size, bytes, times);
-  printf("Times: %d\n", times);
-
 
   unsigned char hashes[times][41];
   for (i = 0; i < times; i++) {
@@ -446,14 +445,12 @@ int handleFile(char *originalFilename) {
       perror("write");
       printf("client: Failed writting message\n");
     }
-    printf("Before send\n");
     err = write(server.listen_fd, bytes[i], BLOCK_SIZE);
     if (err == -1) {
       perror("write");
       printf("client: Failed writting message\n");
       return err;
     }
-    printf("After send\n");
   }
   remove(file2Remove);
   connection_close(server.listen_fd);
@@ -493,9 +490,13 @@ int receiveFile(char *originalFilename) {
   char filename[20] = "tmp/temp.gz.cpt";
   int j;
   file = fopen(filename, "wb");
+  printf("Last item: %d\n", bytes[hashIdx - 1][BLOCK_LENGTH -1]);
   for (i = 0; i < hashIdx; i++) {
-    for (j = 0; j < BLOCK_LENGTH; j++)
+    for (j = 0; j < BLOCK_LENGTH; j++) {
+      if (*(bytes + BLOCK_LENGTH * i + j) == NULL)
+        break;
       fputc(bytes[i][j], file);
+    }
   }
   fclose(file);
 

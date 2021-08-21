@@ -110,7 +110,11 @@ int askForBytes(char *ip, char *hash, int *bytes) {
   if (code == 0)
     printf("Doesn't have file");
 
-  err = read(server.listen_fd, bytes, 256);
+  err = read(server.listen_fd, bytes, BLOCK_SIZE);
+  if (err == -1) {
+    perror("read");
+    printf("Error reading bytes");
+  }
   connection_close(server.listen_fd);
   return 0;
 }
