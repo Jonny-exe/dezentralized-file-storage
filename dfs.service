@@ -1,6 +1,14 @@
-[Service]
-ExecStart=/usr/bin/dfs
+[Unit]
 Description="This is dezetralized file storage service"
-Environment="LISTEN_DIR=dir to listen on files"
-Environment="OTHERS_FILES=dir to listen on files"
-Environment="ENC_KEY=a key phrase for your file encryption. Example: 'very secure key'"
+[Service]
+Type=simple
+Environment=LISTEN_DIR=/home/batman/Documents/GitHub/share-files/test
+Environment=OTHERS_FILES=/home/batman/Documents/GitHub/share-files/tempdir/
+Environment=ENC_KEY="a random key"
+Environment=HELLO="a random key"
+ExecStart=/home/batman/Documents/GitHub/share-files/run.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
