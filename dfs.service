@@ -2,11 +2,8 @@
 Description="This is dezetralized file storage service"
 [Service]
 Type=simple
-Environment=LISTEN_DIR=/home/batman/Documents/GitHub/share-files/test
-Environment=OTHERS_FILES=/home/batman/Documents/GitHub/share-files/tempdir/
-Environment=ENC_KEY="a random key"
-Environment=HELLO="a random key"
-ExecStart=/home/batman/Documents/GitHub/share-files/run.sh
+EnvironmentFile=/home/batman/Documents/GitHub/share-files/.env
+ExecStart=/home/batman/Documents/GitHub/share-files/dfs
 Restart=always
 RestartSec=10
 
