@@ -8,7 +8,7 @@ If you want to understand how it works more in detail you can read [this article
 # Use cases
 This can be used if you are looking to free up some space or you want to sync files between different computers. You can create your own network of devices your connect to the public one.
 
-_This system hasn't been tested enough. Don't use it for anything really important
+_This system hasn't been tested enough. Don't use it for anything really important_
 # How to use it
 ## Setup
 1. Execute the setup script to generate a service file.
